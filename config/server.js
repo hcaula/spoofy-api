@@ -1,11 +1,13 @@
+const winston = require('winston');
+
+const app = require('./express').module();
 const config = require('./config');
-const express = require('express');
-const app = express();
 
-const port = config.port;
+const protocol = require(config.protocol);
 
-exports.initServer = function(next){
-    app.listen(port, function () {
-        console.log(`Express app listening on port ${port}.`);
-    });
+exports.initServer = function(next) {
+  protocol.createServer(app).listen(app.get('port'),function(){
+    winston.info(`Express Server escutando na porta ${app.get('port')}`);
+    next();
+  });
 }

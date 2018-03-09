@@ -1,3 +1,4 @@
+const winston = require('winston');
 const mongoose = require('mongoose');
 const config = require('./config');
 const uri = config.mongodb.uri;
@@ -6,12 +7,12 @@ exports.initMongoose = function(next) {
   mongoose.connect(uri);
 
   mongoose.connection.on('connected', function() {
-    console.log(`Mongoose connected em ${uri}`);
+    winston.info(`Mongoose connected em ${uri}`);
     next();
   });
 
   mongoose.connection.on('disconnected', function() {
-    console.log(`Mongoose disconnected de ${uri}`);
+    winston.info(`Mongoose disconnected de ${uri}`);
   });
 
   mongoose.connection.on('error', function(error) {
@@ -21,7 +22,7 @@ exports.initMongoose = function(next) {
 
   process.on('SIGINT', function() {
     mongoose.connection.close(function() {
-      console.log('Mongoose disconnected by application exit.');
+      winston.info('Mongoose disconnected by application exit.');
       process.exit(0);
     });
   });
