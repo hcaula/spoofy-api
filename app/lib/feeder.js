@@ -4,6 +4,7 @@ const base64 = require('base-64');
 const winston = require('winston');
 const chromium = require('chromium');
 const fs = require('fs');
+const execFile = require('child_process').execFile;
 const config = require('../../config/config');
 
 const request = require('./requests').request;
@@ -58,32 +59,21 @@ const printResponse = function(track, next) {
 const requestAuthorization = function(next) {
     let client_id = config.spotify.client_id;
     let response_type = 'code';
-    let redirect_uri = 'http://localhost:3000/callback'
+    let redirect_uri = 'http://localhost:3000';
 
-    let options = {
-        host: 'accounts.spotify.com',
-        path: `/authorize/?client_id=${client_id}&response_type=${response_type}&redirect_uri=${redirect_uri}`,
-        method: 'GET'
-    }
+    let host = 'accounts.spotify.com';
+    let path = `/authorize/?client_id=${client_id}&response_type=${response_type}&redirect_uri=${redirect_uri}&state=fromserver`
 
-    request('https', options, function(error, response){
-        if(error) next(error);
-        else next(null, response);
-    });
-}
+    let uri = `https://${host}${path}`;
 
-const writeHTMLFile = function(html, next) {
-    const options = {flag: 'w+'}
-
-    fs.writeFile('./assets/auth.html', html, options, function(error){
+    execFile(chromium.path, [uri], function(error) {
         if(error) next(error);
         else next();
     });
-
 }
  
 exports.authFlow = function(query, next) {
-    console.log(query);
+    let parsed = queryString.parse(query);
     next();
 }
 
@@ -91,7 +81,8 @@ exports.initFeeder = function(next) {
     winston.info('Initiaiting feeder.');
     async.waterfall([
         requestAuthorization,
-        writeHTMLFile
+        writeHTMLFile,
+        openChromium
     ], function(error){
         if(error) next(error);
         else next();
