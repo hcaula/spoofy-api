@@ -21,8 +21,11 @@ exports.request = function() {
         });
 
         res.on('end', function(){
-            let response = JSON.parse(_chunk);
-            next(null, response);
+            if(res.headers['content-type'].includes('text/html')) next(null, _chunk);
+            else {
+                let response = JSON.parse(_chunk);
+                next(null, response);
+            }
         });
 
         res.on('error', function(error){

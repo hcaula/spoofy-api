@@ -2,6 +2,8 @@ const async = require('async');
 const https = require('https');
 const base64 = require('base-64');
 const winston = require('winston');
+const chromium = require('chromium');
+const fs = require('fs');
 const config = require('../../config/config');
 
 const request = require('./requests').request;
@@ -53,12 +55,43 @@ const printResponse = function(track, next) {
     next();
 }
 
+const requestAuthorization = function(next) {
+    let client_id = config.spotify.client_id;
+    let response_type = 'code';
+    let redirect_uri = 'http://localhost:3000/callback'
+
+    let options = {
+        host: 'accounts.spotify.com',
+        path: `/authorize/?client_id=${client_id}&response_type=${response_type}&redirect_uri=${redirect_uri}`,
+        method: 'GET'
+    }
+
+    request('https', options, function(error, response){
+        if(error) next(error);
+        else next(null, response);
+    });
+}
+
+const writeHTMLFile = function(html, next) {
+    const options = {flag: 'w+'}
+
+    fs.writeFile('./assets/auth.html', html, options, function(error){
+        if(error) next(error);
+        else next();
+    });
+
+}
+ 
+exports.authFlow = function(query, next) {
+    console.log(query);
+    next();
+}
+
 exports.initFeeder = function(next) {
     winston.info('Initiaiting feeder.');
     async.waterfall([
-        requestToken,
-        testToken,
-        printResponse
+        requestAuthorization,
+        writeHTMLFile
     ], function(error){
         if(error) next(error);
         else next();
