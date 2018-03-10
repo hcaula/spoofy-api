@@ -11,7 +11,7 @@ const winston = require('winston');
 const request = require('../lib/requests').request;
 const calculateExpirationDate = require('../lib/util').calculateExpirationDate;
 
-let User = require('mongoose').model('User');
+const User = require('mongoose').model('User');
 
 module.exports = function(app) {
     app.get('/user', requestAccessToken, requestUserData, loginOrRegister, createUser);
@@ -87,7 +87,6 @@ let requestUserData = function(req, res, next) {
                 images: response.images,
                 token: req.token
             }
-            req.user.token.expiration_date = calculateExpirationDate(req.token.expires_in);
             next();
         }
     });
@@ -117,7 +116,7 @@ let createUser = function(req, res, next) {
                 error: error
             });
         } else {
-            winston.info(`A new user has been registered.\n\t\tDisplay name: ${user.display_name}\n\t\t_id: ${user._id}`);
+            winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
             res.redirect('/index');
         }
     });
