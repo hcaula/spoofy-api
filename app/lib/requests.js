@@ -26,6 +26,7 @@ exports.request = function() {
                 let response = JSON.parse(_chunk);
                 next(null, response);
             } catch(e) {
+                console.log(e);
                 next(e);
             }
         });
