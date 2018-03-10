@@ -9,12 +9,13 @@ const base64 = require('base-64');
 const winston = require('winston');
 
 const request = require('../lib/requests').request;
-const calculateExpirationDate = require('../lib/util').calculateExpirationDate;
+const initJob = require('../lib/jobs').initJob;
 
 const User = require('mongoose').model('User');
 
 module.exports = function(app) {
     app.get('/user', requestAccessToken, requestUserData, loginOrRegister, createUser);
+    app.post('/tracks', getRecentlyPlayedTracks);
 }
 
 let requestAccessToken = function(req, res, next) {
@@ -120,4 +121,14 @@ let createUser = function(req, res, next) {
             res.redirect('/index');
         }
     });
-} 
+}
+
+let getRecentlyPlayedTracks = function(req, res, next) {
+    initJob(function(error){
+        if(error) res.status(500).json(error);
+        else res.status(200).json({
+            success: true,
+            message: "Recent tracks for all users have been updated successfully."
+        });
+    });
+}

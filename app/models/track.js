@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 
 module.exports = function() {
     let TrackSchema = mongoose.Schema({
+        _id: String,
         name: String,
         artists: [
            {
@@ -11,7 +12,7 @@ module.exports = function() {
            }
         ],
         duration_ms: Number,
-        expicit: Boolean,
+        explicit: Boolean,
         href: String,
         danceability: Number,
         energy: Number,

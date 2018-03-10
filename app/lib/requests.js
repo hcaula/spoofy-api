@@ -18,7 +18,6 @@ exports.request = function() {
 
         res.on('data', function(chunk){
             _chunk += chunk;
-            if(options.callee) console.log(chunk);
         });
 
         res.on('end', function(){
