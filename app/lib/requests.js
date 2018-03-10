@@ -18,13 +18,15 @@ exports.request = function() {
 
         res.on('data', function(chunk){
             _chunk += chunk;
+            if(options.callee) console.log(chunk);
         });
 
         res.on('end', function(){
-            if(res.headers['content-type'].includes('text/html')) next(null, _chunk);
-            else {
+            try {
                 let response = JSON.parse(_chunk);
                 next(null, response);
+            } catch(e) {
+                next(e);
             }
         });
 

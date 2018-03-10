@@ -10,8 +10,13 @@ const authFlow = require('../lib/feeder').authFlow;
 module.exports = function(app) {
 
     app.get('/callback', function(req, res){
-        authFlow(res.query, function(){
-            res.status(200).send('User has authorized app access.');
+        authFlow(req.query, function(error){
+            if(error) {
+                if(error.status) res.status(error.status);
+                else res.status(400);
+                res.json(error);
+            }
+            else res.status(200);
         });        
     });
 }
