@@ -11,7 +11,7 @@ module.exports = function(app) {
     app.get('/auth', function(req, res){
         let client_id = config.spotify.client_id;
         let response_type = 'code';
-        let redirect_uri = 'http://localhost:3000/register';
+        let redirect_uri = 'http://localhost:3000/user';
         let scope = 'user-read-recently-played user-read-email user-read-private'
 
         let host = 'accounts.spotify.com';

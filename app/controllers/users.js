@@ -14,9 +14,7 @@ const calculateExpirationDate = require('../lib/util').calculateExpirationDate;
 let User = require('mongoose').model('User');
 
 module.exports = function(app) {
-
-    app.get('/register', requestAccessToken, requestUserData, createUser);
-
+    app.get('/user', requestAccessToken, requestUserData, loginOrRegister, createUser);
 }
 
 let requestAccessToken = function(req, res, next) {
@@ -36,7 +34,7 @@ let requestAccessToken = function(req, res, next) {
         let body = {
             'grant_type':'authorization_code',
             'code': code,
-            'redirect_uri': 'http://localhost:3000/register'
+            'redirect_uri': 'http://localhost:3000/user'
         }
 
         let options = {
@@ -95,6 +93,19 @@ let requestUserData = function(req, res, next) {
     });
 }
 
+let loginOrRegister = function(req, res, next) {
+    User.findById(req.user._id, function(error, user){
+        if(error) {
+            res.status(500).json({
+                success: false,
+                message: "DB error on query for current user.",
+                error: error
+            });
+        } else if (user) res.redirect('/index');
+        else next();
+    });
+}
+
 let createUser = function(req, res, next) {
     let user = new User(req.user);
 
@@ -106,10 +117,8 @@ let createUser = function(req, res, next) {
                 error: error
             });
         } else {
-            res.status(200).json({
-                success: true,
-                message: 'User has been registred successfully.'
-            });
+            winston.info(`A new user has been registered.\n\t\tDisplay name: ${user.display_name}\n\t\t_id: ${user._id}`);
+            res.redirect('/index');
         }
     });
 } 

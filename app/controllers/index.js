@@ -6,9 +6,13 @@ const app = express();
 
 module.exports = function(app) {
 
-    app.get('/', function(res, req){
+    app.get('/', function(req, res){
         console.log("Hello!");
         res.status(200).send("Hello world!");
+    });
+
+    app.get('/index', function(req, res){
+        res.status(200).send("Index page");
     });
 
 }
