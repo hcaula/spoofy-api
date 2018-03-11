@@ -11,6 +11,21 @@ module.exports = function() {
                href: String
            }
         ],
+        album: {
+            id: String,
+            name: String,
+            images: [
+                {
+                    height: Number,
+                    width: Number,
+                    url: String
+                }
+            ],
+            release_date: String,
+            release_date_precision: String,
+            href: String
+        },
+        genres: [String],
         duration_ms: Number,
         explicit: Boolean,
         href: String,

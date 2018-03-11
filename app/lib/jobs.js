@@ -16,7 +16,7 @@ const refreshToken = function(user, next) {
     let today = new Date(limit);
 
     if(today < user.token.expiration_date) {
-        winston.info("Token hasn't expired yet, so it doesn't need to be refreshed. Continuing request...");
+        winston.info("Token hasn't expired yet, so it doesn't need to be refreshed.");
         next(null, user, user.token);
     } else {
         winston.info("Token has expired. Requesting new access_token from Spotify.");
@@ -112,13 +112,39 @@ const getTracksFeatures = function(user, tracks, next) {
     });
 }
 
-const gatherTracksInfo = function(user, tracks, features, next) {
+const getArtists = function(user, tracks, features, next) {
+    winston.info("Requesting several artists for genres retrieval.");
+
+    let ids = '';
+    tracks.forEach(function(track, i){
+        ids += track.track.artists[0].id;
+        if(i < tracks.length - 1) ids += ',';
+    });
+
+    let options = {
+        host: 'api.spotify.com',
+        path: `/v1/artists/?ids=${ids}`,
+        method: 'GET',
+        headers: {'Authorization': `Bearer ${user.token.access_token}`}
+    }
+
+    request('https', options, function(error, response){
+        if(error || response.error) next((error ? error : response));
+        else {
+            winston.info("Several artists requested successfully.");
+            next(null, user, tracks, features, response.artists);
+        }
+    });
+}
+
+const gatherTracksInfo = function(user, tracks, features, artists, next) {
     winston.info("Gathering tracks information.");
 
     let savableTracks = [];
     tracks.forEach(function(track, i){
         let tr = track.track;
         let ft = features[i];
+        let ar = artists[i];
 
         let savableTrack = {
             _id: tr.id,
@@ -126,6 +152,14 @@ const gatherTracksInfo = function(user, tracks, features, next) {
             duration_ms: tr.duration_ms,
             explicit: tr.explicit,
             href: tr.href,
+
+            album: {
+                id: tr.album.id,
+                name: tr.album.name,
+                images: tr.album.images,
+                href: tr.uri
+            },
+
             danceability: ft.danceability,
             energy: ft.energy,
             key: ft.key,
@@ -138,13 +172,16 @@ const gatherTracksInfo = function(user, tracks, features, next) {
             valence: ft.valence,
             tempo: ft.tempo,
             time_signature: ft.time_signature,
+            
+            genres: ar.genres,
             artists: []
         };
 
         tr.artists.forEach(function(artist){
             savableTrack.artists.push({
                 name: artist.name,
-                href: artist.href
+                href: artist.href,
+                id: artist.id
             });
         });
 
@@ -164,11 +201,11 @@ const saveTracks = function(tracks, next) {
             let trackStr = `${track.name} by ${track.artists[0].name}.`
             if(error) {
                 if(error.code == 11000) {
-                    winston.warn(`Track has already been saved: ${trackStr}.`);
+                    winston.warn(`Track has already been saved: ${trackStr}`);
                     next();
                 } else next(error);
             } else {
-                winston.info(`New track saved successfully: ${trackStr}.`)
+                winston.info(`New track saved successfully: ${trackStr}`)
                 next();
             }
         });
@@ -184,6 +221,7 @@ const saveTracks = function(tracks, next) {
 
 exports.initJob = function(next) {
     winston.info("Initiating init job.");
+    let start = Date.now();
 
     winston.info("Retrieving users from local DB.");
     User.find({role: {$ne: "admin"}}, function(error, users){
@@ -205,6 +243,7 @@ exports.initJob = function(next) {
                     updateToken,
                     getRecentlyPlayedTracks,
                     getTracksFeatures,
+                    getArtists,
                     gatherTracksInfo,
                     saveTracks
                 ], function(error){
@@ -217,10 +256,15 @@ exports.initJob = function(next) {
 
             }, function(error){
                 if(error) {
-                    winston.error(new Error(error));
+                    winston.error(error);
                     next(error);
                 }
-                else next();
+                else {
+                    let elapsed = (Date.now() - start)/1000;
+                    winston.info('Recent tracks for all users have been updated successfully.');
+                    winston.info(`Approximated total time for job: ${elapsed} seconds.`);
+                    next();
+                }
             });
         }
     });
