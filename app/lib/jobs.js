@@ -46,8 +46,11 @@ const refreshToken = function(next) {
         }
 
         request('https', options, body, function(error, response){
-            if(error || response.error) next((error ? error : response));
-            else {
+            if(error) {
+                let err = new Error(error.message);
+                err.status = error.status;
+                next(err);
+            } else {
                 winston.info("New access_token has been requested successfully.");
                 
                 results.token = response;
@@ -73,8 +76,11 @@ const updateToken = function(next) {
         user.token = token;
 
         user.save(function(error, newUser){
-            if(error) next(error);
-            else {
+            if(error) {
+                let err = new Error(error.message);
+                err.status = error.status;
+                next(err);
+            } else {
                 winston.info("User token updated successfully.");
 
                 results.user = newUser;
@@ -101,8 +107,11 @@ const getRecentlyPlayedTracks = function(next) {
     }
 
     request('https', options, function(error, response){
-        if(error) next(error);
-        else {
+        if(error) {
+            let err = new Error(error.message);
+            err.status = error.status;
+            next(err);
+        } else {
             winston.info("Recently played tracks requested successfully.");
 
             results.tracks = response.items;
@@ -131,8 +140,11 @@ const getTracksFeatures = function(next) {
     }
 
     request('https', options, function(error, response){
-        if(error || response.error) next((error ? error : response));
-        else {
+        if(error) {
+            let err = new Error(error.message);
+            err.status = error.status;
+            next(err);
+        } else {
             winston.info("Several tracks features requested successfully");
 
             results.features = response.audio_features;
@@ -162,8 +174,11 @@ const getArtists = function(next) {
     }
 
     request('https', options, function(error, response){
-        if(error || response.error) next((error ? error : response));
-        else {
+        if(error) {
+            let err = new Error(error.message);
+            err.status = error.status;
+            next(err);
+        } else {
             winston.info("Several artists requested successfully.");
 
             results.artists = response.artists;
@@ -246,7 +261,11 @@ const saveTracks = function(next) {
             let trackStr = `${track.name} by ${track.artists[0].name}.`
             if(error) {
                 if(error.code == 11000) next();
-                else next(error);
+                else {
+                    let err = new Error(error);
+                    err.type = "db_validation";
+                    next(err);
+                }
             } else next();
         });
     }, function(error){
@@ -270,8 +289,11 @@ const createOrUpdateUserTracks = function(next) {
             {$addToSet: {played_at: track.played_at}},
             {upsert: true},
             function(error) {
-                if(error) next(error);
-                else next();
+                if(error) {
+                    let err = new Error(error);
+                    err.type = "db_validation";
+                    next(err);
+                } else next();
             }
         );
     }, function(error){
@@ -292,8 +314,11 @@ exports.initJob = function(next) {
 
     winston.info("Retrieving users from local DB.");
     User.find({role: {$ne: "admin"}}, function(error, users){
-        if(error) next(error);
-        else if (users.length < 0) {
+        if(error) {
+            let err = new Error(error);
+            err.type = "db_validation";
+            next(err);
+        } else if (users.length < 0) {
             winston.warn("No users were found on local DB.");
             next();
         } else {
@@ -323,7 +348,7 @@ exports.initJob = function(next) {
 
             }, function(error){
                 if(error) {
-                    winston.error(error);
+                    winston.error(error.stack);
                     next(error);
                 } else {
                     let elapsed = (Date.now() - start)/1000;

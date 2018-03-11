@@ -6,6 +6,14 @@ const initServer = require('./config/server').initServer;
 const initMongoose = require('./config/database').initMongoose;
 const configWinston = require('./config/winston').configWinston;
 
+process.on('uncaughtException', function (err) {
+  console.log('Caught exception: ', err);
+});
+
+process.on('unhandledRejection', (reason, p) => {
+  console.log('Unhandled Rejection at:', p, 'reason:', reason);
+});
+
 async.series([
   configWinston,
   initMongoose,
@@ -16,4 +24,3 @@ async.series([
     winston.info(`Server is ready to receive API calls on ${config.protocol}://${config.hostname}:${config.port}`);
   }
 });
-

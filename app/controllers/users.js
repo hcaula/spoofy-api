@@ -125,7 +125,18 @@ let createUser = function(req, res, next) {
 
 let getRecentlyPlayedTracks = function(req, res, next) {
     initJob(function(error){
-        if(error) res.status(500).json(error);
+        if(error) {
+            if(error.status) res.status(error.status).json({
+                success: false,
+                message: error.message
+            });
+            else {
+                res.status(500).json({
+                    success: false,
+                    message: "Internal server error. We weren't expecting that."
+                });
+            }
+        }
         else res.status(200).json({
             success: true,
             message: "Recent tracks for all users have been updated successfully."

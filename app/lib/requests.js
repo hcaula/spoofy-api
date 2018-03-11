@@ -23,7 +23,8 @@ exports.request = function() {
         res.on('end', function(){
             try {
                 let response = JSON.parse(_chunk);
-                next(null, response);
+                if(response.error) next(response.error);
+                else next(null, response);
             } catch(e) {
                 console.log(e);
                 next(e);
