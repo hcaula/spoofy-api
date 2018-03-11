@@ -31,11 +31,12 @@ let requestAccessToken = function(req, res, next) {
         let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
         let client_secret = (process.env.SPOTIFY_CLIENTSECRET|| config.spotify.client_secret);
         let encoded = base64.encode(`${client_id}:${client_secret}`);
+        let redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
 
         let body = {
             'grant_type':'authorization_code',
             'code': code,
-            'redirect_uri': 'http://localhost:3000/callback'
+            'redirect_uri': redirect_uri
         }
 
         let options = {

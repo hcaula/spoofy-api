@@ -11,7 +11,7 @@ module.exports = function(app) {
     app.get('/auth', function(req, res){
         let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
         let response_type = 'code';
-        let redirect_uri = 'http://localhost:3000/callback';
+        let redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
         let scope = 'user-read-recently-played user-read-email user-read-private'
 
         let host = 'accounts.spotify.com';
