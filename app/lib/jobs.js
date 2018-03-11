@@ -203,14 +203,9 @@ const saveTracks = function(user, tracks, next) {
         newTrack.save(function(error){
             let trackStr = `${track.name} by ${track.artists[0].name}.`
             if(error) {
-                if(error.code == 11000) {
-                    winston.warn(`Track has already been saved: ${trackStr}`);
-                    next();
-                } else next(error);
-            } else {
-                winston.info(`New track saved successfully: ${trackStr}`)
-                next();
-            }
+                if(error.code == 11000) next();
+                else next(error);
+            } else next();
         });
     }, function(error){
         if(error) next(error);
