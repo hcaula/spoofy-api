@@ -14,7 +14,7 @@ const initJob = require('../lib/jobs').initJob;
 const User = require('mongoose').model('User');
 
 module.exports = function(app) {
-    app.get('/user', requestAccessToken, requestUserData, loginOrRegister, createUser);
+    app.get('/callback', requestAccessToken, requestUserData, loginOrRegister, createUser);
     app.post('/tracks', getRecentlyPlayedTracks);
 }
 
