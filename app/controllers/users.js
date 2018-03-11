@@ -14,7 +14,7 @@ const initJob = require('../lib/jobs').initJob;
 const User = require('mongoose').model('User');
 
 module.exports = function(app) {
-    app.get('/callback', requestAccessToken, requestUserData, loginOrRegister, createUser);
+    app.get('/callback', requestAccessToken, requestUserData, loginOrRegister);
     app.post('/tracks', getRecentlyPlayedTracks);
 }
 
@@ -35,7 +35,7 @@ let requestAccessToken = function(req, res, next) {
         let body = {
             'grant_type':'authorization_code',
             'code': code,
-            'redirect_uri': 'http://localhost:3000/user'
+            'redirect_uri': 'http://localhost:3000/callback'
         }
 
         let options = {
@@ -101,24 +101,28 @@ let loginOrRegister = function(req, res, next) {
                 message: "DB error on query for current user.",
                 error: error
             });
-        } else if (user) res.redirect('/index');
-        else next();
-    });
-}
-
-let createUser = function(req, res, next) {
-    let user = new User(req.user);
-
-    user.save(function(error){
-        if(error) {
-            res.status(500).json({
-                success: false,
-                message: "Not possible to save the user on the database.",
-                error: error
+        } else if (user) {
+            res.status(200).json({
+                success: true,
+                message: "User has already been registered, redirect to dashboard page now."
             });
         } else {
-            winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
-            res.redirect('/index');
+            user = new User(req.user);
+            user.save(function(error){
+                if(error) {
+                    res.status(500).json({
+                        success: false,
+                        message: "It was not possible to save the user on our database. We're sorry for that.",
+                        error: error
+                    });
+                } else {
+                    winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
+                    res.status(200).json({
+                        success: true,
+                        message: "User has been created successfully, redirect to dashboard page now."
+                    });
+                }
+            });
         }
     });
 }
@@ -126,20 +130,24 @@ let createUser = function(req, res, next) {
 let getRecentlyPlayedTracks = function(req, res, next) {
     initJob(function(error){
         if(error) {
-            if(error.status) res.status(error.status).json({
-                success: false,
-                message: error.message
-            });
-            else {
+            if(error.status) {
+                res.status(error.status).json({
+                    success: false,
+                    message: error.message,
+                    error: error
+                });
+            } else {
                 res.status(500).json({
                     success: false,
-                    message: "Internal server error. We weren't expecting that."
+                    message: "Internal server error. We weren't expecting that.",
+                    error: error
                 });
             }
+        } else {
+            res.status(200).json({
+                success: true,
+                message: "Recent tracks for all users have been updated successfully."
+            });
         }
-        else res.status(200).json({
-            success: true,
-            message: "Recent tracks for all users have been updated successfully."
-        });
     });
 }
