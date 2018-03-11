@@ -9,16 +9,22 @@ const User = require('mongoose').model('User');
 const User_Track = require('mongoose').model('User_Track');
 const Track = require('mongoose').model('Track');
 
-const refreshToken = function(user, next) {
+let results;
+
+const refreshToken = function(next) {
     let now = Date.now();
 
     /* We add a little limit so that the token doesn't expire mid-request */
     let limit = now + 60000;
     let today = new Date(limit);
 
+    let user = results.user;
+
     if(today < user.token.expiration_date) {
         winston.info("Token hasn't expired yet, so it doesn't need to be refreshed.");
-        next(null, user, user.token);
+
+        results.token = user.token;
+        next();
     } else {
         winston.info("Token has expired. Requesting new access_token from Spotify.");
 
@@ -43,16 +49,26 @@ const refreshToken = function(user, next) {
             if(error || response.error) next((error ? error : response));
             else {
                 winston.info("New access_token has been requested successfully.");
-                next(null, user, response);
+                
+                results.token = response;
+                next();
             }
         });
     }
 }
 
-const updateToken = function(user, token, next) {
-    if(user.token.access_token == token.access_token) next(null, user, token);
+const updateToken = function(next) {
+    let user = results.user;
+    let token = results.token;
+
+    /* If both access tokens are equal, then the token 
+    has not been refreshed and we can skip this function */
+    if(user.token.access_token == token.access_token) next();
     else {
         winston.info("Updating user token on local DB.");
+
+        let user = results.user, token = results.token;
+
         token.refresh_token = user.token.refresh_token;
         user.token = token;
 
@@ -60,14 +76,19 @@ const updateToken = function(user, token, next) {
             if(error) next(error);
             else {
                 winston.info("User token updated successfully.");
-                next(null, newUser, token);
+
+                results.user = newUser;
+                next();
             }
         });
     }
 }
 
-const getRecentlyPlayedTracks = function(user, token, next) {
+const getRecentlyPlayedTracks = function(next) {
     winston.info("Requesting recently played tracks.");
+    
+    let token = results.token;
+
     let access_token = token.access_token;
     let type = "track";
     let limit = 50;
@@ -83,13 +104,18 @@ const getRecentlyPlayedTracks = function(user, token, next) {
         if(error) next(error);
         else {
             winston.info("Recently played tracks requested successfully.");
-            next(null, user, response.items);
+
+            results.tracks = response.items;
+            next();
         }
     });
 }
 
-const getTracksFeatures = function(user, tracks, next) {
+const getTracksFeatures = function(next) {
     winston.info("Requesting several tracks features.");
+
+    let tracks = results.tracks;
+    let user = results.user;
 
     let ids = '';
     tracks.forEach(function(track, i){
@@ -108,13 +134,19 @@ const getTracksFeatures = function(user, tracks, next) {
         if(error || response.error) next((error ? error : response));
         else {
             winston.info("Several tracks features requested successfully");
-            next(null, user, tracks, response.audio_features);
+
+            results.features = response.audio_features;
+            next();
         }
     });
 }
 
-const getArtists = function(user, tracks, features, next) {
+const getArtists = function(next) {
     winston.info("Requesting several artists for genres retrieval.");
+
+    let tracks = results.tracks;
+    let user = results.user;
+    let features = results.features;
 
     let ids = '';
     tracks.forEach(function(track, i){
@@ -133,13 +165,19 @@ const getArtists = function(user, tracks, features, next) {
         if(error || response.error) next((error ? error : response));
         else {
             winston.info("Several artists requested successfully.");
-            next(null, user, tracks, features, response.artists);
+
+            results.artists = response.artists;
+            next();
         }
     });
 }
 
-const gatherTracksInfo = function(user, tracks, features, artists, next) {
+const gatherTracksInfo = function(next) {
     winston.info("Gathering tracks information.");
+
+    let tracks = results.tracks;
+    let artists = results.artists;
+    let features = results.features;
 
     let saveableTracks = [];
     tracks.forEach(function(track, i){
@@ -192,11 +230,15 @@ const gatherTracksInfo = function(user, tracks, features, artists, next) {
     });
 
     winston.info("Tracks information gathered successfully")
-    next(null, user, saveableTracks);
+
+    results.tracks = saveableTracks;
+    next();
 }
 
-const saveTracks = function(user, tracks, next) {
+const saveTracks = function(next) {
     winston.info("Saving tracks on local DB");
+
+    let tracks = results.tracks;
 
     async.eachSeries(tracks, function(track, next){
         let newTrack = new Track(track);
@@ -211,13 +253,16 @@ const saveTracks = function(user, tracks, next) {
         if(error) next(error);
         else {
             winston.info("Tracks saved successfully.");
-            next(null, user, tracks);
+            next();
         }
     });
 }
 
-const createOrUpdateUserTracks = function(user, tracks, next) {
+const createOrUpdateUserTracks = function(next) {
     winston.info("Creating/updating new user-track relationships.");
+
+    let user = results.user;
+    let tracks = results.tracks;
 
     async.eachSeries(tracks, function(track, next){
         User_Track.update(
@@ -243,6 +288,8 @@ exports.initJob = function(next) {
     winston.info("Initiating init job.");
     let start = Date.now();
 
+    results = {};
+
     winston.info("Retrieving users from local DB.");
     User.find({role: {$ne: "admin"}}, function(error, users){
         if(error) next(error);
@@ -253,12 +300,11 @@ exports.initJob = function(next) {
             winston.info("Users retrieved successfully.");
 
             async.eachSeries(users, function(user, next){
-
                 winston.info(`Getting recently played tracks for user ${user.display_name}.`);
 
-                /* First function is a dummy just to pass the user to the second function */
-                async.waterfall([
-                    function(next){next(null, user);},
+                results.user = user;
+
+                async.series([
                     refreshToken,
                     updateToken,
                     getRecentlyPlayedTracks,
@@ -279,8 +325,7 @@ exports.initJob = function(next) {
                 if(error) {
                     winston.error(error);
                     next(error);
-                }
-                else {
+                } else {
                     let elapsed = (Date.now() - start)/1000;
                     winston.info('Recent tracks for all users have been updated successfully.');
                     winston.info(`Approximated total time for job: ${elapsed} seconds.`);
