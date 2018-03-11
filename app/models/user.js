@@ -16,15 +16,6 @@ module.exports = function() {
             width: Number,
             url: String
         }],
-        tracks: [
-            {
-                track: {
-                    type: Schema.Types.ObjectId,
-                    refId: 'Track'
-                },
-                listenedAt: [Date]
-            }
-        ],
         token: {
             access_token: String,
             token_type: String,

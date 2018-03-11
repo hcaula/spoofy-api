@@ -6,6 +6,7 @@ const winston = require('winston');
 const request = require('./requests').request;
 
 const User = require('mongoose').model('User');
+const User_Track = require('mongoose').model('User_Track');
 const Track = require('mongoose').model('Track');
 
 const refreshToken = function(user, next) {
@@ -140,13 +141,13 @@ const getArtists = function(user, tracks, features, next) {
 const gatherTracksInfo = function(user, tracks, features, artists, next) {
     winston.info("Gathering tracks information.");
 
-    let savableTracks = [];
+    let saveableTracks = [];
     tracks.forEach(function(track, i){
         let tr = track.track;
         let ft = features[i];
         let ar = artists[i];
 
-        let savableTrack = {
+        let saveableTrack = {
             _id: tr.id,
             name: tr.name,
             duration_ms: tr.duration_ms,
@@ -174,25 +175,27 @@ const gatherTracksInfo = function(user, tracks, features, artists, next) {
             time_signature: ft.time_signature,
             
             genres: ar.genres,
-            artists: []
+            artists: [],
+
+            played_at: track.played_at
         };
 
         tr.artists.forEach(function(artist){
-            savableTrack.artists.push({
+            saveableTrack.artists.push({
                 name: artist.name,
                 href: artist.href,
                 id: artist.id
             });
         });
 
-        savableTracks.push(savableTrack);
+        saveableTracks.push(saveableTrack);
     });
 
     winston.info("Tracks information gathered successfully")
-    next(null, savableTracks);
+    next(null, user, saveableTracks);
 }
 
-const saveTracks = function(tracks, next) {
+const saveTracks = function(user, tracks, next) {
     winston.info("Saving tracks on local DB");
 
     async.eachSeries(tracks, function(track, next){
@@ -213,6 +216,28 @@ const saveTracks = function(tracks, next) {
         if(error) next(error);
         else {
             winston.info("Tracks saved successfully.");
+            next(null, user, tracks);
+        }
+    });
+}
+
+const createOrUpdateUserTracks = function(user, tracks, next) {
+    winston.info("Creating/updating new user-track relationships.");
+
+    async.eachSeries(tracks, function(track, next){
+        User_Track.update(
+            {user: user._id, track: track._id},
+            {$addToSet: {played_at: track.played_at}},
+            {upsert: true},
+            function(error) {
+                if(error) next(error);
+                else next();
+            }
+        );
+    }, function(error){
+        if(error) next(error);
+        else {
+            winston.info("New user-track relationships created/updated successfully.")
             next();
         }
     });
@@ -245,7 +270,8 @@ exports.initJob = function(next) {
                     getTracksFeatures,
                     getArtists,
                     gatherTracksInfo,
-                    saveTracks
+                    saveTracks,
+                    createOrUpdateUserTracks
                 ], function(error){
                     if(error) next(error);
                     else {
