@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const idValidator = require('mongoose-id-validator');
 
 const calculateExpirationDate = require('../lib/util').calculateExpirationDate;
 
@@ -26,8 +25,6 @@ module.exports = function() {
         },
         role: {type: String, default: "user"}
     });
-
-    UserSchema.plugin(idValidator);
 
     /* Calculating the expiration_date previous the save function */
     UserSchema.pre('save', function(next){
