@@ -28,8 +28,8 @@ let requestAccessToken = function(req, res, next) {
     }
     else {
         let code = req.query.code;
-        let client_id = config.spotify.client_id;
-        let client_secret = config.spotify.client_secret;
+        let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
+        let client_secret = (process.env.SPOTIFY_CLIENTSECRET|| config.spotify.client_secret);
         let encoded = base64.encode(`${client_id}:${client_secret}`);
 
         let body = {

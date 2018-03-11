@@ -2,8 +2,6 @@ node_modules
 DS_Store
 
 config/environments
-assets/auth.html
-
 npm-debug.log
 
 req.py

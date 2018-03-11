@@ -29,8 +29,8 @@ const refreshToken = function(next) {
         winston.info("Token has expired. Requesting new access_token from Spotify.");
 
         let refresh_token = user.token.refresh_token;
-        let client_id = config.spotify.client_id;
-        let client_secret = config.spotify.client_secret;
+        let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
+        let client_secret = (process.env.SPOTIFY_CLIENTSECRET|| config.spotify.client_secret);
         let encoded = base64.encode(`${client_id}:${client_secret}`);
 
         let body = {

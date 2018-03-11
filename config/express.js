@@ -11,7 +11,8 @@ exports.module = function() {
   app.use(bodyParser.json());
 
   /* Sets the port to the one specfied on the config file */
-  app.set('port', config.port);
+  let port = (process.env.PORT || config.port)
+  app.set('port', port);
 
   /* Allows for better routing - no need to keep adding new routers */
   load('models', {cwd:'app'})
