@@ -29,6 +29,8 @@ configWinston(function(){
                         else {
                             let elapsed = (Date.now() - start)/1000;
                             winston.info(`Scheduler job executed successfully in approximately ${elapsed} seconds.`);
+                            winston.info('Exiting scheduler execution.');
+                            process.exit(0);
                         }
                     });
                 }
