@@ -82,7 +82,7 @@ let requestUserData = function(req, res, next) {
         } else {
             req.user = {
                 _id: response.id,
-                display_name: response.display_name,
+                display_name: (response.display_name || response.id),
                 email: response.email,
                 uri: response.uri,
                 href: response.href,
