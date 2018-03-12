@@ -306,8 +306,6 @@ const createOrUpdateUserTracks = function(next) {
 
 
 exports.initJob = function(users, next) {
-    let start = Date.now();
-
     results = {};
 
     async.eachSeries(users, function(user, next){
@@ -338,7 +336,6 @@ exports.initJob = function(users, next) {
         } else {
             let elapsed = (Date.now() - start)/1000;
             winston.info('Recent tracks for all users have been updated successfully.');
-            winston.info(`Approximated total time for job: ${elapsed} seconds.`);
             next();
         }
     });
