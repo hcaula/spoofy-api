@@ -127,10 +127,7 @@ const getTracksFeatures = function(next) {
     let user = results.user;
 
     let ids = '';
-    tracks.forEach(function(track, i){
-        ids += track.track.id;
-        if(i < tracks.length - 1) ids += ',';
-    });
+    ids += tracks.map((track, i) => `${track.track.id}${(i<(this.length-1) ? ',' : '')}`);
 
     let options = {
         host: 'api.spotify.com',
@@ -161,10 +158,7 @@ const getArtists = function(next) {
     let features = results.features;
 
     let ids = '';
-    tracks.forEach(function(track, i){
-        ids += track.track.artists[0].id;
-        if(i < tracks.length - 1) ids += ',';
-    });
+    ids += tracks.map((track, i) => `${track.track.artists[0].id}${(i<(this.length-1) ? ',' : '')}`);
 
     let options = {
         host: 'api.spotify.com',
