@@ -48,7 +48,7 @@ const refreshToken = function(next) {
         request('https', options, body, function(error, response){
             if(error) {
                 let err = new Error(error.message);
-                err.status = error.status;
+                err.message = 'Authentication error.';
                 next(err);
             } else {
                 winston.info("New access_token has been requested successfully.");
@@ -78,7 +78,6 @@ const updateToken = function(next) {
         user.save(function(error, newUser){
             if(error) {
                 let err = new Error(error.message);
-                err.status = error.status;
                 next(err);
             } else {
                 winston.info("User token updated successfully.");
@@ -109,7 +108,7 @@ const getRecentlyPlayedTracks = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Recently played tracks requested successfully.");
@@ -142,7 +141,7 @@ const getTracksFeatures = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Several tracks features requested successfully");
@@ -176,7 +175,7 @@ const getArtists = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Several artists requested successfully.");
@@ -306,57 +305,41 @@ const createOrUpdateUserTracks = function(next) {
 }
 
 
-exports.initJob = function(next) {
-    winston.info("Initiating init job.");
+exports.initJob = function(users, next) {
     let start = Date.now();
 
     results = {};
 
-    winston.info("Retrieving users from local DB.");
-    User.find({role: {$ne: "admin"}}, function(error, users){
+    async.eachSeries(users, function(user, next){
+        winston.info(`Getting recently played tracks for user ${user.display_name}.`);
+
+        results.user = user;
+
+        async.series([
+            refreshToken,
+            updateToken,
+            getRecentlyPlayedTracks,
+            getTracksFeatures,
+            getArtists,
+            gatherTracksInfo,
+            saveTracks,
+            createOrUpdateUserTracks
+        ], function(error){
+            if(error) next(error);
+            else {
+                winston.info(`Recently played tracks for user ${user.display_name} have been updated successfully.`);
+                next();
+            }
+        });
+    }, function(error){
         if(error) {
-            let err = new Error(error);
-            err.type = "db_validation";
-            next(err);
-        } else if (users.length < 0) {
-            winston.warn("No users were found on local DB.");
-            next();
+            winston.error(error.stack);
+            next(error);
         } else {
-            winston.info("Users retrieved successfully.");
-
-            async.eachSeries(users, function(user, next){
-                winston.info(`Getting recently played tracks for user ${user.display_name}.`);
-
-                results.user = user;
-
-                async.series([
-                    refreshToken,
-                    updateToken,
-                    getRecentlyPlayedTracks,
-                    getTracksFeatures,
-                    getArtists,
-                    gatherTracksInfo,
-                    saveTracks,
-                    createOrUpdateUserTracks
-                ], function(error){
-                    if(error) next(error);
-                    else {
-                        winston.info(`Recently played tracks for user ${user.display_name} have been updated successfully.`);
-                        next();
-                    }
-                });
-
-            }, function(error){
-                if(error) {
-                    winston.error(error.stack);
-                    next(error);
-                } else {
-                    let elapsed = (Date.now() - start)/1000;
-                    winston.info('Recent tracks for all users have been updated successfully.');
-                    winston.info(`Approximated total time for job: ${elapsed} seconds.`);
-                    next();
-                }
-            });
+            let elapsed = (Date.now() - start)/1000;
+            winston.info('Recent tracks for all users have been updated successfully.');
+            winston.info(`Approximated total time for job: ${elapsed} seconds.`);
+            next();
         }
     });
 }
