@@ -7,6 +7,7 @@ const winston = require('winston');
 require('../app/models/user')();
 require('../app/models/user-track')();
 require('../app/models/track')();
+require('../app/models/genre')();
 
 const configWinston = require('../config/winston').configWinston;
 const initMongoose = require('../config/database').initMongoose;
