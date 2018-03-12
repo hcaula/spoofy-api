@@ -19,7 +19,8 @@ module.exports = function(app) {
         path += `client_id=${client_id}&`;
         path += `response_type=${response_type}&`;
         path += `redirect_uri=${redirect_uri}&`;
-        path += `scope=${scope}`;
+        path += `scope=${scope}&`;
+        path += `show_dialog=${true}`;
 
         let uri = `https://${host}${path}`;
 
