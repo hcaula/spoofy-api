@@ -8,6 +8,7 @@ const request = require('./requests').request;
 const User = require('mongoose').model('User');
 const User_Track = require('mongoose').model('User_Track');
 const Track = require('mongoose').model('Track');
+const Genre = require('mongoose').model('Genre');
 
 let results;
 
@@ -253,6 +254,7 @@ const saveTracks = function(next) {
     winston.info("Saving tracks on local DB");
 
     let tracks = results.tracks;
+    let newTracks = [];
 
     async.eachSeries(tracks, function(track, next){
         let newTrack = new Track(track);
@@ -265,12 +267,44 @@ const saveTracks = function(next) {
                     err.type = "db_validation";
                     next(err);
                 }
-            } else next();
+            } else {
+                newTracks.push(newTrack);
+                next();
+            } 
         });
     }, function(error){
         if(error) next(error);
         else {
             winston.info("Tracks saved successfully.");
+            results.newTracks = newTracks;
+            next();
+        }
+    });
+}
+
+const saveGenres = function(next) {
+    winston.info("Saving genres.");
+
+    async.eachSeries(results.newTracks, function(track, next) {
+        async.eachSeries(track.genres, function(genre, next) {
+            let artists = track.artists.map(artist => artist.name);
+            Genre.update(
+                {name: genre},
+                {name: genre, $addToSet: {artists: {$each: artists}}},
+                {upsert: true},
+                function(error) {
+                    if(error) next(error);
+                    else next();
+                }
+            );
+        }, function(error){
+            if(error) next(error);
+            else next();
+        });
+    }, function(error){
+        if(error) next(error);
+        else {
+            winston.info("Genres saved successfully.");
             next();
         }
     });
@@ -321,6 +355,7 @@ exports.initJob = function(users, next) {
             getArtists,
             gatherTracksInfo,
             saveTracks,
+            saveGenres,
             createOrUpdateUserTracks
         ], function(error){
             if(error) next(error);
@@ -334,7 +369,6 @@ exports.initJob = function(users, next) {
             winston.error(error.stack);
             next(error);
         } else {
-            let elapsed = (Date.now() - start)/1000;
             winston.info('Recent tracks for all users have been updated successfully.');
             next();
         }

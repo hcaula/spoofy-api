@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
 module.exports = function() {
     let User_TrackSchema = mongoose.Schema({
