@@ -8,6 +8,7 @@ const request = require('./requests').request;
 const User = require('mongoose').model('User');
 const User_Track = require('mongoose').model('User_Track');
 const Track = require('mongoose').model('Track');
+const Genre = require('mongoose').model('Genre');
 
 let results;
 
@@ -48,7 +49,7 @@ const refreshToken = function(next) {
         request('https', options, body, function(error, response){
             if(error) {
                 let err = new Error(error.message);
-                err.status = error.status;
+                err.message = 'Authentication error.';
                 next(err);
             } else {
                 winston.info("New access_token has been requested successfully.");
@@ -78,7 +79,6 @@ const updateToken = function(next) {
         user.save(function(error, newUser){
             if(error) {
                 let err = new Error(error.message);
-                err.status = error.status;
                 next(err);
             } else {
                 winston.info("User token updated successfully.");
@@ -109,7 +109,7 @@ const getRecentlyPlayedTracks = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Recently played tracks requested successfully.");
@@ -127,10 +127,7 @@ const getTracksFeatures = function(next) {
     let user = results.user;
 
     let ids = '';
-    tracks.forEach(function(track, i){
-        ids += track.track.id;
-        if(i < tracks.length - 1) ids += ',';
-    });
+    ids += tracks.map((track, i) => `${track.track.id}${(i<(this.length-1) ? ',' : '')}`);
 
     let options = {
         host: 'api.spotify.com',
@@ -142,7 +139,7 @@ const getTracksFeatures = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Several tracks features requested successfully");
@@ -161,10 +158,7 @@ const getArtists = function(next) {
     let features = results.features;
 
     let ids = '';
-    tracks.forEach(function(track, i){
-        ids += track.track.artists[0].id;
-        if(i < tracks.length - 1) ids += ',';
-    });
+    ids += tracks.map((track, i) => `${track.track.artists[0].id}${(i<(this.length-1) ? ',' : '')}`);
 
     let options = {
         host: 'api.spotify.com',
@@ -176,7 +170,7 @@ const getArtists = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.status = error.status;
+            err.message = 'Authentication error.';
             next(err);
         } else {
             winston.info("Several artists requested successfully.");
@@ -254,6 +248,7 @@ const saveTracks = function(next) {
     winston.info("Saving tracks on local DB");
 
     let tracks = results.tracks;
+    let newTracks = [];
 
     async.eachSeries(tracks, function(track, next){
         let newTrack = new Track(track);
@@ -266,12 +261,44 @@ const saveTracks = function(next) {
                     err.type = "db_validation";
                     next(err);
                 }
-            } else next();
+            } else {
+                newTracks.push(newTrack);
+                next();
+            } 
         });
     }, function(error){
         if(error) next(error);
         else {
             winston.info("Tracks saved successfully.");
+            results.newTracks = newTracks;
+            next();
+        }
+    });
+}
+
+const saveGenres = function(next) {
+    winston.info("Saving genres.");
+
+    async.eachSeries(results.newTracks, function(track, next) {
+        async.eachSeries(track.genres, function(genre, next) {
+            let artists = track.artists.map(artist => artist.name);
+            Genre.update(
+                {name: genre},
+                {name: genre, $addToSet: {artists: {$each: artists}}},
+                {upsert: true},
+                function(error) {
+                    if(error) next(error);
+                    else next();
+                }
+            );
+        }, function(error){
+            if(error) next(error);
+            else next();
+        });
+    }, function(error){
+        if(error) next(error);
+        else {
+            winston.info("Genres saved successfully.");
             next();
         }
     });
@@ -306,57 +333,38 @@ const createOrUpdateUserTracks = function(next) {
 }
 
 
-exports.initJob = function(next) {
-    winston.info("Initiating init job.");
-    let start = Date.now();
-
+exports.initJob = function(users, next) {
     results = {};
 
-    winston.info("Retrieving users from local DB.");
-    User.find({role: {$ne: "admin"}}, function(error, users){
+    async.eachSeries(users, function(user, next){
+        winston.info(`Getting recently played tracks for user ${user.display_name}.`);
+
+        results.user = user;
+
+        async.series([
+            refreshToken,
+            updateToken,
+            getRecentlyPlayedTracks,
+            getTracksFeatures,
+            getArtists,
+            gatherTracksInfo,
+            saveTracks,
+            saveGenres,
+            createOrUpdateUserTracks
+        ], function(error){
+            if(error) next(error);
+            else {
+                winston.info(`Recently played tracks for user ${user.display_name} have been updated successfully.`);
+                next();
+            }
+        });
+    }, function(error){
         if(error) {
-            let err = new Error(error);
-            err.type = "db_validation";
-            next(err);
-        } else if (users.length < 0) {
-            winston.warn("No users were found on local DB.");
-            next();
+            winston.error(error.stack);
+            next(error);
         } else {
-            winston.info("Users retrieved successfully.");
-
-            async.eachSeries(users, function(user, next){
-                winston.info(`Getting recently played tracks for user ${user.display_name}.`);
-
-                results.user = user;
-
-                async.series([
-                    refreshToken,
-                    updateToken,
-                    getRecentlyPlayedTracks,
-                    getTracksFeatures,
-                    getArtists,
-                    gatherTracksInfo,
-                    saveTracks,
-                    createOrUpdateUserTracks
-                ], function(error){
-                    if(error) next(error);
-                    else {
-                        winston.info(`Recently played tracks for user ${user.display_name} have been updated successfully.`);
-                        next();
-                    }
-                });
-
-            }, function(error){
-                if(error) {
-                    winston.error(error.stack);
-                    next(error);
-                } else {
-                    let elapsed = (Date.now() - start)/1000;
-                    winston.info('Recent tracks for all users have been updated successfully.');
-                    winston.info(`Approximated total time for job: ${elapsed} seconds.`);
-                    next();
-                }
-            });
+            winston.info('Recent tracks for all users have been updated successfully.');
+            next();
         }
     });
 }

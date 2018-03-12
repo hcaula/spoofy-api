@@ -2,6 +2,6 @@
  * Configuration module
 */
 
-let config = require('./environments/' + process.env.NODE_ENV + '.json')
+let config = require('./environments/' + (process.env.NODE_ENV || 'production') + '.json')
 config.env = process.env.NODE_ENV;
 module.exports = config;

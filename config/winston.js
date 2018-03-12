@@ -39,6 +39,6 @@ exports.configWinston = function(next) {
 
   winston.addColors(colors);
   winston.configure(custom);
-  winston.log('info', 'Winston configurado com sucesso.');
+  winston.log('info', 'Winston log library configured successfully.');
   next();
 }
