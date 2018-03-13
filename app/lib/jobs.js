@@ -8,7 +8,6 @@ const request = require('./requests').request;
 const User = require('mongoose').model('User');
 const User_Track = require('mongoose').model('User_Track');
 const Track = require('mongoose').model('Track');
-const Genre = require('mongoose').model('Genre');
 
 let results;
 
@@ -276,34 +275,6 @@ const saveTracks = function(next) {
     });
 }
 
-const saveGenres = function(next) {
-    winston.info("Saving genres.");
-
-    async.eachSeries(results.newTracks, function(track, next) {
-        async.eachSeries(track.genres, function(genre, next) {
-            let artists = track.artists.map(artist => artist.name);
-            Genre.update(
-                {name: genre},
-                {name: genre, $addToSet: {artists: {$each: artists}}},
-                {upsert: true},
-                function(error) {
-                    if(error) next(error);
-                    else next();
-                }
-            );
-        }, function(error){
-            if(error) next(error);
-            else next();
-        });
-    }, function(error){
-        if(error) next(error);
-        else {
-            winston.info("Genres saved successfully.");
-            next();
-        }
-    });
-}
-
 const createOrUpdateUserTracks = function(next) {
     winston.info("Creating/updating new user-track relationships.");
 
@@ -349,7 +320,6 @@ exports.initJob = function(users, next) {
             getArtists,
             gatherTracksInfo,
             saveTracks,
-            saveGenres,
             createOrUpdateUserTracks
         ], function(error){
             if(error) next(error);
