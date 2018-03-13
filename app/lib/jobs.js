@@ -80,6 +80,7 @@ const updateToken = function(next) {
         user.save(function(error, newUser){
             if(error) {
                 let err = new Error(error.message);
+                err.type = 'db_error';
                 next(err);
             } else {
                 winston.info("User token updated successfully.");
@@ -146,12 +147,21 @@ const shaveTracks = function(next) {
                 winston.warn("User has not listened to any new tracks.");
                 next({stop: true});
             } else {
-                winston.info(`${diff} new listened track${(diff > 1 ? 's' : '')} found.`);
-
                 let uTracksIds = uTracks.map(s => s.track);
-                results.tracks = tracks.filter(t => !uTracksIds.includes(t.track.id));
+                let shavedTracks = tracks.filter(t => !uTracksIds.includes(t.track.id));
 
-                next();
+                /* We have to check again in case the user has listened to the same song
+                more than once on his/her last recently played tracks */
+                if(shavedTracks.length == 0) {
+                    winston.warn("User has not listened to any new tracks.");
+                    next({stop: true});
+                } else {
+                    diff = shavedTracks.length;
+                    winston.info(`${diff} new listened track${(diff > 1 ? 's' : '')} found.`);
+
+                    results.tracks = shavedTracks;
+                    next();
+                }
             }
         }
     });
@@ -177,7 +187,7 @@ const getTracksFeatures = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.message = 'Authentication error.';
+            err.message = error.message;
             next(err);
         } else {
             winston.info("Several tracks features requested successfully");
@@ -209,7 +219,7 @@ const getArtists = function(next) {
     request('https', options, function(error, response){
         if(error) {
             let err = new Error(error.message);
-            err.message = 'Authentication error.';
+            err.message = error.message;
             next(err);
         } else {
             winston.info("Several artists requested successfully.");
@@ -299,7 +309,7 @@ const saveTracks = function(next) {
                 if(error.code == 11000) next();
                 else {
                     let err = new Error(error);
-                    err.type = "db_validation";
+                    err.type = "db_error";
                     next(err);
                 }
             } else {
@@ -332,7 +342,7 @@ const createOrUpdateUserTracks = function(next) {
             function(error) {
                 if(error) {
                     let err = new Error(error);
-                    err.type = "db_validation";
+                    err.type = "db_error";
                     next(err);
                 } else next();
             }
