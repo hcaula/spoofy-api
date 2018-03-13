@@ -11,6 +11,7 @@ const Track = require('mongoose').model('Track');
 
 let results;
 
+/* Request new token using the refresh token */
 const refreshToken = function(next) {
     let now = Date.now();
 
@@ -60,6 +61,7 @@ const refreshToken = function(next) {
     }
 }
 
+/* Update token on our database */
 const updateToken = function(next) {
     let user = results.user;
     let token = results.token;
@@ -89,6 +91,7 @@ const updateToken = function(next) {
     }
 }
 
+/* Request recently played tracks */
 const getRecentlyPlayedTracks = function(next) {
     winston.info("Requesting recently played tracks.");
     
@@ -119,6 +122,42 @@ const getRecentlyPlayedTracks = function(next) {
     });
 }
 
+/* Reduce the quantity of tracks by checking if they're already on our DB */
+const shaveTracks = function(next) {
+    winston.info("Shaving tracks.");
+    let tracks = results.tracks;
+    let user = results.user;
+
+    let trackIds = tracks.map(t => t.track.id);
+    let played_ats = (tracks.map(t => new Date(t.played_at)));
+    let userId = user._id;
+
+    let query = {user: userId, track: {$in: trackIds}, played_at: {$in: played_ats}};
+
+    User_Track.find(query, function(error, uTracks){
+        if(error) {
+            let err = new Error(error);
+            err.type = "db_error";
+            next(err);
+        } else {
+            let diff = tracks.length - uTracks.length;
+
+            if(diff == 0) {
+                winston.warn("User has not listened to any new tracks.");
+                next({stop: true});
+            } else {
+                winston.info(`${diff} new listened track${(diff > 1 ? 's' : '')} found.`);
+
+                let uTracksIds = uTracks.map(s => s.track);
+                results.tracks = tracks.filter(t => !uTracksIds.includes(t.track.id));
+
+                next();
+            }
+        }
+    });
+}
+
+/* Request tracks features */
 const getTracksFeatures = function(next) {
     winston.info("Requesting several tracks features.");
 
@@ -149,6 +188,7 @@ const getTracksFeatures = function(next) {
     });
 }
 
+/* Request artists */
 const getArtists = function(next) {
     winston.info("Requesting several artists for genres retrieval.");
 
@@ -180,6 +220,7 @@ const getArtists = function(next) {
     });
 }
 
+/* Create an array of saveable tracks - matching with our model */
 const gatherTracksInfo = function(next) {
     winston.info("Gathering tracks information.");
 
@@ -243,6 +284,7 @@ const gatherTracksInfo = function(next) {
     next();
 }
 
+/* Save tracks on our DB */
 const saveTracks = function(next) {
     winston.info("Saving tracks on local DB");
 
@@ -275,6 +317,7 @@ const saveTracks = function(next) {
     });
 }
 
+/* Update user-tracks on our DB */
 const createOrUpdateUserTracks = function(next) {
     winston.info("Creating/updating new user-track relationships.");
 
@@ -316,14 +359,18 @@ exports.initJob = function(users, next) {
             refreshToken,
             updateToken,
             getRecentlyPlayedTracks,
+            shaveTracks,
             getTracksFeatures,
             getArtists,
             gatherTracksInfo,
             saveTracks,
             createOrUpdateUserTracks
         ], function(error){
-            if(error) next(error);
-            else {
+            if(error && !error.stop) next(error);
+            else if (error && error.stop) {
+                winston.info(`Stoping init job for user ${results.user.display_name}.`);
+                next();
+            }  else {
                 winston.info(`Recently played tracks for user ${user.display_name} have been updated successfully.`);
                 next();
             }
