@@ -18,83 +18,27 @@ module.exports = function(app) {
 /* If neither begin_hour or end_hour time come with the request, gets all user-tracks */
 let getUserTracksByHourDay = function(req, res, next) {
     let user = req.user;
-    let begin_hour = (parseInt(req.query.begin_hour) || 0);
     
-    let end_hour;
-    if(!req.query.begin_hour && !req.query.end_hour) end_hour = 24;
-    else if (req.query.begin_hour && !req.query.end_hour) end_hour = begin_hour;
-    else if (req.query.begin_hour && req.query.end_hour) end_hour = parseInt(req.query.end_hour)
-    else {
-        res.status(400).json({
-            type: 'bad_request',
-            error: "An end hour should come with a begin hour."
-        });
-    }
 
-    let begin_day = (parseInt(req.query.begin_day) || 0);
+    User_Track.find({user: user}, function(error, _uTracks){
+        if(error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+            let period = util.filterPerPeriod({
+                begin_hour: req.query.begin_hour,
+                begin_day: req.query.begin_day,
+                end_hour: req.query.end_hour,
+                end_day: req.query.end_day
+            }, "played_at", _uTracks);
 
-    let end_day;
-    if(!req.query.begin_day && !req.query.end_day) end_day = 7;
-    else if (req.query.begin_day && !req.query.end_day) end_day = begin_day;
-    else if (req.query.begin_day && req.query.end_day) end_day = parseInt(req.query.end_day)
-    else {
-        res.status(400).json({
-            type: 'bad_request',
-            error: "An end day day should come with a begin day."
-        });
-    }
-
-    if(begin_hour < 0 || begin_hour > 24 || end_hour < 0 || end_hour > 24) {
-        res.status(400).json({
-            type: 'bad_request',
-            error: 'Invalid hour.'
-        });
-    } else if (begin_hour > end_hour) {
-        res.status(400).json({
-            type: 'bad_request',
-            error: 'The end hour should be bigger than the begin hour.'
-        });
-    } else if(begin_day < 0 || begin_day > 7 || end_day < 0 || end_day > 7) {
-        res.status(400).json({
-            type: 'bad_request',
-            error: 'Invalid day.'
-        });
-    } else if (begin_day > end_day) {
-        res.status(400).json({
-            type: 'bad_request',
-            error: 'The end day should be bigger than the begin day.'
-        });
-    } else {
-        let hours = [];
-        if(end_hour == begin_hour) hours = [begin_hour];
-        else for(let i = begin_hour; i <= end_hour; i++) hours.push(i);
-
-        let days = [];
-        if(end_day == begin_day) days = [begin_day];
-        else for(let i = begin_day; i <= end_day; i++) days.push(i);
-
-        User_Track.find({user: user}, function(error, _uTracks){
-            if(error) {
-                winston.error(error.stack);
-                res.status(500).json(errors[500]);
-            } else {
-                let uTracks = [];
-                _uTracks.forEach(function(ut){
-                    for(let i = 0; i < ut.played_at.length; i++) {
-                        let date = ut.played_at[i];
-                        if(hours.includes(date.getUTCHours()) && days.includes(date.getUTCDay())) {
-                            uTracks.push(ut);
-                            i = ut.played_at.length;
-                        }
-                    }
-                });
-
-                req.track_ids = uTracks.map(u => u.track);
+            if(period.error) res.status(400).json(period.error);
+            else {
+                req.track_ids = period.array.map(u => u.track);
                 next();
             }
-        });
-
-    }
+        }
+    });
 
 }
 
