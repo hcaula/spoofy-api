@@ -13,12 +13,12 @@ exports.errors[400] = function(param) {
     if(param) {
         return {
             "type": "missing_params",
-            "message": `Field ${param} was not found on your request.`
+            "message": `Field "${param}" was not found on your request.`
         }
     } else {
         return {
             "type": "bad_request",
-            "message": "Your request has some missing fields or has syntax errors."
+            "message": "Your request has some invalid fields or has syntax errors."
         }
     }
 }
