@@ -26,12 +26,22 @@ let getUsersMostListenedGenres = function(req, res) {
                 else if (lastB < lastA) return -1;
                 else return 0;
             });
-            res.status(200).json({tracks: uTracks});
 
-            // let trackIds = uTracks.map(u => u.track);
-            // Track.find({_id: {$in: trackIds}}, function(error){
-
-            // });
+            let trackIds = uTracks.map(u => u.track);
+            Track.find({_id: {$in: trackIds}}, function(error, tracks){
+                if(error) {
+                    winston.error(error);
+                    res.status(500).json(errors[500]);   
+                } else {
+                    let genres = []
+                    tracks.forEach(t => {
+                        t.genres.forEach(g => {
+                            genres.push(g);
+                        })
+                    });
+                    res.status(200).json({genres: genres});
+                }
+            });
         }
     });
 }
