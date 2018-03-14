@@ -23,10 +23,12 @@ exports.request = function() {
         res.on('end', function(){
             try {
                 let response = JSON.parse(_chunk);
-                if(response.error) next(response.error);
+                if(response.error) {
+                    if(response.error.message) next(new Error(response.error.message));
+                    else next(_chunk);
+                }
                 else next(null, response);
             } catch(e) {
-                console.log(e);
                 next(e);
             }
         });
