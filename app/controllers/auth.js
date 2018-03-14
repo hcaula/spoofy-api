@@ -115,7 +115,8 @@ let loginOrRegister = function(req, res, next) {
                     res.status(500).json(errors[500]);
                 } else {
                     res.status(200).json({
-                        message: "We're so glad you're already registered with us. Thank you."
+                        message: "We're so glad you're already registered with us. Thank you.",
+                        access_token: user.token.access_token
                     });
                 }
             });
@@ -128,7 +129,8 @@ let loginOrRegister = function(req, res, next) {
                 } else {
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
                     res.status(200).json({
-                        message: "User has been created successfully, redirect to dashboard page now."
+                        message: "User has been created successfully, redirect to dashboard page now.",
+                        access_token: user.token.access_token
                     });
                 }
             });

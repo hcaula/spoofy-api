@@ -23,7 +23,7 @@ exports.filterPerPeriod = function(periods, field, array) {
 
     
     let begin_hour = (parseInt(begin_hour_str) || 0);
-    if(!begin_hour_str && !end_hour) end_hour = 24;
+    if(!begin_hour_str && !end_hour) end_hour = 23;
     else if (begin_hour_str && !end_hour) end_hour = begin_hour;
     else if (begin_hour_str && end_hour) end_hour = parseInt(end_hour)
     else {
@@ -34,8 +34,9 @@ exports.filterPerPeriod = function(periods, field, array) {
         return {error: error}
     }
 
+    
     let begin_day = (parseInt(begin_day_str) || 0);
-    if(!begin_day_str && !end_day) end_day = 7;
+    if(!begin_day_str && !end_day) end_day = 6;
     else if (begin_day_str && !end_day) end_day = begin_day;
     else if (begin_day_str && end_day) end_day = parseInt(end_day)
     else {
@@ -45,7 +46,7 @@ exports.filterPerPeriod = function(periods, field, array) {
         }
         return {error: error}
     }
-
+    
     if(begin_hour < 0 || begin_hour > 23 || end_hour < 0 || end_hour > 23) {
         let error = {
             type: 'bad_request',
@@ -91,8 +92,37 @@ exports.filterPerPeriod = function(periods, field, array) {
         }
     });
 
-    
-
     return {array: ret}
+
+}
+
+exports.dividePerTime = function(frequency, choice, field, array) {
+    let iterations = (choice == 'day' ? 24 : 7);
+
+    let arrayRet = [];
+    for(let i = 0; i < iterations; i++) {
+        let filter;
+        if(choice == 'day') {
+            filter = {
+                begin_day: frequency,
+                begin_hour: i.toString()
+            }
+        } else {
+            filter = {
+                begin_day: i.toString(),
+                begin_hour: frequency
+            }
+        }
+
+        ret = exports.filterPerPeriod(filter, field, array);
+        if(ret.error) return ret.error;
+        else {
+            let obj = {tracks: ret.array};
+            obj[(choice == 'hour' ? 'day' : 'hour')] = i;
+            arrayRet.push(obj);
+        }
+    } 
+
+    return arrayRet;
 
 }
