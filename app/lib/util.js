@@ -46,7 +46,7 @@ exports.filterPerPeriod = function(periods, field, array) {
         return {error: error}
     }
 
-    if(begin_hour < 0 || begin_hour > 24 || end_hour < 0 || end_hour > 24) {
+    if(begin_hour < 0 || begin_hour > 23 || end_hour < 0 || end_hour > 23) {
         let error = {
             type: 'bad_request',
             error: 'Invalid hour.'
@@ -58,7 +58,7 @@ exports.filterPerPeriod = function(periods, field, array) {
             error: 'The end hour should be bigger than the begin hour.'
         };
         return {error: error}
-    } else if(begin_day < 0 || begin_day > 7 || end_day < 0 || end_day > 7) {
+    } else if(begin_day < 0 || begin_day > 6 || end_day < 0 || end_day > 6) {
         let error = {
             type: 'bad_request',
             error: 'Invalid day.'
