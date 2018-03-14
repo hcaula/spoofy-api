@@ -13,5 +13,13 @@ module.exports = function(app) {
 
 
 let getUser = function(req, res) {
-
+    let user = req.user;
+    res.status(200).json({
+        _id: user._id,
+        display_name: user.display_name,
+        email: user.email,
+        uri: user.uri,
+        href: user.href,
+        images: user.images
+    });
 }

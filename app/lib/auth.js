@@ -5,21 +5,23 @@ const errors = require('./errors').errors;
 exports.authenticateUser = function(req, res, next) {
     let access_token = req.headers.access_token;
     if(!access_token) {
-        res.setHeaders({'WWW-Authenticate': 'access-token'});
-        res.status(401).json(errors[401]);
+        res.set('WWW-Authenticate', 'access-token');
+        res.status(401).json(errors[401]('no_token_provided'));
     } else {
-        User.findOne({token: {$elemMatch: {access_token: token}}}, function(error, user){
-            let expiration_date = user.token.expiration_date;
-            let today = new Date();
-            if(today > expiration_date) {
-                res.setHeaders({'WWW-Authenticate': 'access-token'});
-                res.status(401).json({
-                    type: "session_expired",
-                    error: "You're too slow. The access token you've sent has expired."
-                });
+        User.findOne({"token.access_token": access_token}, function(error, user){
+            if(!user) {
+                res.set('WWW-Authenticate', 'access-token');
+                res.status(401).json(errors[401]('permission_denied'));
             } else {
-                req.user = user;
-                next();
+                let expiration_date = user.token.expiration_date;
+                let today = new Date();
+                if(today > expiration_date) {
+                    res.set('WWW-Authenticate', 'access-token');
+                    res.status(401).json(errors[401]('session_expired'));
+                } else {
+                    req.user = user;
+                    next();
+                }
             }
         });
     }
