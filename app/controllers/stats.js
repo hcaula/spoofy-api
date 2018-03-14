@@ -9,42 +9,69 @@ const authenticateUser = require('../lib/auth').authenticateUser;
 const errors = require('../lib/errors').errors;
 
 module.exports = function(app) {
-    app.get('/v1/stats/genre/user', authenticateUser, getUserTracksByHour, getGenresByTracks);
+    app.get('/v1/stats/genre/user', authenticateUser, getUserTracksByHourDay, getGenresByTracks);
 }
 
 /* Gets ser tracks by hour */
-/* If a begin time comes with the request, gets only the user-tracks for this hour */
-/* If an end time comes with the request, gets the user-tracks for the period begin-end */
-/* If neither begin or end time come with the request, gets all user-tracks */
-let getUserTracksByHour = function(req, res, next) {
+/* If a begin_hour time comes with the request, gets only the user-tracks for this hour */
+/* If an end_hour time comes with the request, gets the user-tracks for the period begin_hour-end_hour */
+/* If neither begin_hour or end_hour time come with the request, gets all user-tracks */
+let getUserTracksByHourDay = function(req, res, next) {
     let user = req.user;
-    let begin = (parseInt(req.query.begin) || 0);
+    let begin_hour = (parseInt(req.query.begin_hour) || 0);
     
-    let end;
-    if(!req.query.begin && !req.query.end) end = 24;
-    else if (req.query.begin && !req.query.end) end = begin;
-    else if (req.query.begin && req.query.end) end = parseInt(req.query.end)
+    let end_hour;
+    if(!req.query.begin_hour && !req.query.end_hour) end_hour = 24;
+    else if (req.query.begin_hour && !req.query.end_hour) end_hour = begin_hour;
+    else if (req.query.begin_hour && req.query.end_hour) end_hour = parseInt(req.query.end_hour)
     else {
         res.status(400).json({
             type: 'bad_request',
-            error: "An end time should come with a begin time."
+            error: "An end hour should come with a begin hour."
         });
     }
 
-    if(begin < 0 || begin > 24 || end < 0 || end > 24) {
+    let begin_day = (parseInt(req.query.begin_day) || 0);
+
+    let end_day;
+    if(!req.query.begin_day && !req.query.end_day) end_day = 7;
+    else if (req.query.begin_day && !req.query.end_day) end_day = begin_day;
+    else if (req.query.begin_day && req.query.end_day) end_day = parseInt(req.query.end_day)
+    else {
+        res.status(400).json({
+            type: 'bad_request',
+            error: "An end day day should come with a begin day."
+        });
+    }
+
+    if(begin_hour < 0 || begin_hour > 24 || end_hour < 0 || end_hour > 24) {
         res.status(400).json({
             type: 'bad_request',
             error: 'Invalid hour.'
         });
-    } else if (begin > end) {
+    } else if (begin_hour > end_hour) {
         res.status(400).json({
             type: 'bad_request',
-            error: 'The end time should be bigger than the begin time.'
+            error: 'The end hour should be bigger than the begin hour.'
+        });
+    } else if(begin_day < 0 || begin_day > 7 || end_day < 0 || end_day > 7) {
+        res.status(400).json({
+            type: 'bad_request',
+            error: 'Invalid day.'
+        });
+    } else if (begin_day > end_day) {
+        res.status(400).json({
+            type: 'bad_request',
+            error: 'The end day should be bigger than the begin day.'
         });
     } else {
         let hours = [];
-        if(end == begin) hours = [begin];
-        else for(let i = begin; i <= end; i++) hours.push(i);
+        if(end_hour == begin_hour) hours = [begin_hour];
+        else for(let i = begin_hour; i <= end_hour; i++) hours.push(i);
+
+        let days = [];
+        if(end_day == begin_day) days = [begin_day];
+        else for(let i = begin_day; i <= end_day; i++) days.push(i);
 
         User_Track.find({user: user}, function(error, _uTracks){
             if(error) {
@@ -55,7 +82,7 @@ let getUserTracksByHour = function(req, res, next) {
                 _uTracks.forEach(function(ut){
                     for(let i = 0; i < ut.played_at.length; i++) {
                         let date = ut.played_at[i];
-                        if(hours.includes(date.getUTCHours())) {
+                        if(hours.includes(date.getUTCHours()) && days.includes(date.getUTCDay())) {
                             uTracks.push(ut);
                             i = ut.played_at.length;
                         }
