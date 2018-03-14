@@ -9,11 +9,14 @@ const authenticateUser = require('../lib/auth').authenticateUser;
 const errors = require('../lib/errors').errors;
 
 module.exports = function(app) {
-    app.get('/v1/stats/genre/user', authenticateUser, getUsersMostListenedGenres);
+    app.get('/v1/stats/genre/user', authenticateUser, getUsersListenedGenres);
 }
 
-let getUsersMostListenedGenres = function(req, res) {
+let getUsersListenedGenres = function(req, res) {
     let user = req.user;
+    let page = (req.query.page || 0);
+    let limit = 20;
+
     User_Track.find({user: user}, function(error, uTracks){
         if(error) {
             winston.error(error);
@@ -52,7 +55,9 @@ let getUsersMostListenedGenres = function(req, res) {
 
                     countedGenres.sort((a, b) => b.times_listened - a.times_listened);
 
-                    res.status(200).json({genres: countedGenres});
+                    genres = countedGenres.splice(page*limit, limit);
+
+                    res.status(200).json({genres: genres, total: countedGenres.length});
                 }
             });
         }
