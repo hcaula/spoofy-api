@@ -10,6 +10,7 @@ const errors = require('../lib/errors').errors;
 
 module.exports = function(app) {
     app.get('/v1/stats/genre/user', authenticateUser, getUserTracksByHourDay, getGenresByTracks);
+    app.get('/v1/stats/genre/user/time', authenticateUser, getUserTracksDividedByTime);
 }
 
 /* Gets ser tracks by hour */
@@ -20,7 +21,7 @@ let getUserTracksByHourDay = function(req, res, next) {
     let user = req.user;
     
 
-    User_Track.find({user: user}, function(error, _uTracks){
+    User_Track.find({user: user._id}, function(error, _uTracks){
         if(error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
@@ -86,4 +87,31 @@ let getGenresByTracks = function(req, res) {
             }
         });
     }
+}
+
+let getUserTracksDividedByTime = function(req, res, next) {
+    let user = req.user;
+    let day = req.query.day;
+    let hour = req.query.hour;
+
+    if(day && hour) {
+        res.status(400).json({
+            type: 'bad_param',
+            error: 'Choose either day or hour for frequency'
+        });
+    } else {
+        let frequency = (day ? day : hour);
+        let choice = (day ? 'day' : 'hour');
+
+        User_Track.find({user: user._id}, function(error, _uTracks){
+            if(error) {
+                winston.error(error);
+                res.status(500).json(errors[500]);   
+            } else {
+                let ret = util.dividePerTime(frequency, choice, "played_at", _uTracks);
+                res.status(200).json(ret);
+            }
+        });
+    }
+
 }
