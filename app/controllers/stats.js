@@ -1,13 +1,9 @@
-/*
- * Modules
-*/
-
 const authenticateUser = require('../lib/auth').authenticateUser;
 
 const User = require('mongoose').model('User');
 
 module.exports = function(app) {
-    app.get('/v1/user', authenticateUser, getUser);
+    app.get('/v1/stats/', authenticateUser, getUser);
 }
 
 let getUser = function(req, res) {

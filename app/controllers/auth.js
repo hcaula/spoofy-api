@@ -15,8 +15,8 @@ const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
 module.exports = function(app) {
-    app.get('/auth', requestUserAuthorization);
-    app.get('/callback', requestAccessToken, requestUserData, loginOrRegister);
+    app.get('/v1/auth', requestUserAuthorization);
+    app.get('/v1/callback', requestAccessToken, requestUserData, loginOrRegister);
 }
 
 let requestUserAuthorization = function(req, res) {
