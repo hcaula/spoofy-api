@@ -13,9 +13,9 @@ module.exports = function(app) {
 }
 
 /* Gets ser tracks by hour */
-/* If a begin_hour time comes with the request, gets only the user-tracks for this hour */
-/* If an end_hour time comes with the request, gets the user-tracks for the period begin_hour-end_hour */
-/* If neither begin_hour or end_hour time come with the request, gets all user-tracks */
+/* If a begin time comes with the request, gets only the user-tracks for this time */
+/* If an end time comes with the request, gets the user-tracks for the period begin-end */
+/* If neither begin or end time come with the request, assumes begin = 0 and end = <last> */
 let getUserTracksByHourDay = function(req, res, next) {
     let user = req.user;
     
