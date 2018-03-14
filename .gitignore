@@ -2,6 +2,7 @@ node_modules
 DS_Store
 
 config/environments/development.json
+config/environments/local.json
 npm-debug.log
 
 req.py

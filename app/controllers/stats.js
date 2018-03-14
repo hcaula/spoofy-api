@@ -44,7 +44,7 @@ let getUserTracksByHour = function(req, res, next) {
     } else {
         let hours = [];
         if(end == begin) hours = [begin];
-        else for(let i = begin; i <= (end - begin); i++) hours.push(i);
+        else for(let i = begin; i <= end; i++) hours.push(i);
 
         User_Track.find({user: user}, function(error, _uTracks){
             if(error) {
