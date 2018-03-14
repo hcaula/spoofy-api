@@ -8,6 +8,7 @@ const config = require('../../config/config');
 const base64 = require('base-64');
 const winston = require('winston');
 
+const errors = require('../lib/errors').errors;
 const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
@@ -20,11 +21,8 @@ module.exports = function(app) {
 
 let requestAccessToken = function(req, res, next) {
     if(req.query.error) {
-        res.status(401).json({
-            success: false,
-            message: 'Authentication error.',
-            error: req.query.error
-        });
+        winston.error(req.query.error);
+        res.status(500).json(errors[500]);
     } else {
         let code = req.query.code;
         let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
@@ -47,13 +45,9 @@ let requestAccessToken = function(req, res, next) {
 
         request('https', options, body, function(error, response){
             if(error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Request error',
-                    error: error
-                });
-            }
-            else {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
                 req.token = response;
                 next();
             }
@@ -72,12 +66,8 @@ let requestUserData = function(req, res, next) {
 
     request('https', options, function(error, response){
         if(error) {
-            winston.error(error);
-            res.status(500).json({
-                success: false,
-                message: 'It was not possible to retrieve user information from Spotify',
-                error: error
-            });
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
         } else {
             req.user = {
                 _id: response.id,
@@ -96,29 +86,29 @@ let requestUserData = function(req, res, next) {
 let loginOrRegister = function(req, res, next) {
     User.findById(req.user._id, function(error, user){
         if(error) {
-            res.status(500).json({
-                success: false,
-                message: "DB error on query for current user.",
-                error: error
-            });
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
         } else if (user) {
-            res.status(200).json({
-                success: true,
-                message: "User has already been registered, redirect to dashboard page now."
+            user.token = req.token;
+            user.save(function(error){
+                if(error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    res.status(200).json({
+                        message: "We're so glad you're already registered with us. Thank you."
+                    });
+                }
             });
         } else {
             user = new User(req.user);
             user.save(function(error){
                 if(error) {
-                    res.status(500).json({
-                        success: false,
-                        message: "It was not possible to save the user on our database. We're sorry for that.",
-                        error: error
-                    });
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
                 } else {
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
                     res.status(200).json({
-                        success: true,
                         message: "User has been created successfully, redirect to dashboard page now."
                     });
                 }
@@ -129,46 +119,24 @@ let loginOrRegister = function(req, res, next) {
 
 let updateUserRecentlyPlayedTracks = function(req, res, next) {
     let user_id = req.body.user_id;
-    if(!user_id || user_id == '') {
-        res.status(400).json({
-            success: false,
-            error: {
-                type: "missing_fields",
-                message: "Field 'user_id' was not found on your request body."
-            }
-        });
-    } else {
+    if(!user_id || user_id == '') res.status(400).json(errors[400]('user_id'));
+    else {
         User.findById(user_id, function(error, user){
             if(error) {
-                res.status(500).json({
-                    success: false,
-                    error: {
-                        type: 'internal_server_error',
-                        message: "We messed up. We're very sorry. Try again in a while, please."
-                    }
-                });
+                winston.error(error);
+                res.status(500).json(errors[500]);
             } else if(!user) {
-                res.status(404).json({
-                    success: false,
-                    error: {
-                        type: 'user_not_found',
-                        message: "We looked very hard, but we couldn't find this user on our database."
-                    }
+                res.status(200).json({
+                    message: "Everything went right... except that this user was not found on our system."
                 });
             } else {
                 let users = [user];
                 initJob(users, function(error){
                     if(error) {
-                        res.status(500).json({
-                            success: false,
-                            error: {
-                                type: 'internal_server_error',
-                                message: "We messed up. We're very sorry. Try again in a while, please."
-                            }
-                        });
+                        winston.log(error);
+                        res.status(500).json(errors[500]);
                     } else {
                         res.status(200).json({
-                            success: true,
                             message: "User's recently played tracks have been updated successfully."
                         });
                     }
