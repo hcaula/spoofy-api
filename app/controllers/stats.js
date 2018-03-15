@@ -35,18 +35,31 @@ let getUserTracks = function(req, res, next) {
 
 let filterUserTracks = function(req, res, next) {
     let user_tracks = req.user_tracks;
-    
-    let period = filters.filterUserTracks({
-        begin_hour: req.query.begin_hour,
-        begin_day: req.query.begin_day,
-        end_hour: req.query.end_hour,
-        end_day: req.query.end_day
-    }, user_tracks);
 
-    if(period.error) res.status(400).json(period.error);
-    else {
-        res.status(200).send(period);
+    let day = req.query.day;
+    let hour = req.query.hour;
+
+    if((day && hour) || (!day && !hour)) {
+        res.status(400).json({
+            type: 'bad_param',
+            error: 'Choose either day or hour for frequency'
+        });
+    } else {
+        let frequency = (day ? day : hour);
+        let choice = (day ? 'day' : 'hour');
+
+        req.user_tracks = filters.dividePerTime(frequency, choice, user_tracks);
+
+        res.status(200).send(req.user_tracks);
+
     }
+}
+
+let getTracks = function(req, res, next) {
+    let user_tracks = req.user_tracks;
+
+    let track_ids = [];
+
 }
 
 /* Returns an array of tracks ID's on a pair (begin_hour, end_hour) and/or (begin_day, end_day) */
@@ -70,29 +83,7 @@ let getUserTracksByHourDay = function(req, res, next) {
 /* Gets user-tracks divided by time - ex.: for each day of the week, which tracks were
 played at 4 AM? Or for each hour of the day, which tracks were played on mondays? */
 let getUserTracksDividedByTime = function(req, res, next) {
-    let user = req.user;
-    let day = req.query.day;
-    let hour = req.query.hour;
-
-    if(day && hour) {
-        res.status(400).json({
-            type: 'bad_param',
-            error: 'Choose either day or hour for frequency'
-        });
-    } else {
-        let frequency = (day ? day : hour);
-        let choice = (day ? 'day' : 'hour');
-
-        User_Track.find({user: user._id}, function(error, _uTracks){
-            if(error) {
-                winston.error(error);
-                res.status(500).json(errors[500]);   
-            } else {
-                req.user_tracks = util.dividePerTime(frequency, choice, "played_at", _uTracks);
-                next();
-            }
-        });
-    }
+    
 }
 
 /* Given an array of Tracks IDs', returns their genres */

@@ -1,11 +1,10 @@
-exports.filterUserTracks = function(periods, user_tracks) {
+exports.filterPerPeriod = function(periods, user_tracks) {
 
     let begin_hour_str = periods.begin_hour;
     let begin_day_str = periods.begin_day;
     let end_hour = periods.end_hour;
     let end_day = periods.end_day;
 
-    
     let begin_hour = (parseInt(begin_hour_str) || 0);
     if(!begin_hour_str && !end_hour) end_hour = 23;
     else if (begin_hour_str && !end_hour) end_hour = begin_hour;
@@ -17,8 +16,7 @@ exports.filterUserTracks = function(periods, user_tracks) {
         }
         return {error: error}
     }
-
-    
+  
     let begin_day = (parseInt(begin_day_str) || 0);
     if(!begin_day_str && !end_day) end_day = 6;
     else if (begin_day_str && !end_day) end_day = begin_day;
@@ -77,5 +75,36 @@ exports.filterUserTracks = function(periods, user_tracks) {
     });
 
     return {user_tracks: ret}
+
+}
+
+exports.dividePerTime = function(frequency, choice, user_tracks) {
+    let iterations = (choice == 'day' ? 24 : 7);
+
+    let arrayRet = [];
+    for(let i = 0; i < iterations; i++) {
+        let filter;
+        if(choice == 'day') {
+            filter = {
+                begin_day: frequency,
+                begin_hour: i.toString()
+            }
+        } else {
+            filter = {
+                begin_day: i.toString(),
+                begin_hour: frequency
+            }
+        }
+
+        ret = exports.filterPerPeriod(filter, user_tracks);
+        if(ret.error) return ret.error;
+        else {
+            let obj = {tracks: ret.user_tracks};
+            obj[(choice == 'hour' ? 'day' : 'hour')] = i;
+            arrayRet.push(obj);
+        }
+    } 
+
+    return arrayRet;
 
 }
