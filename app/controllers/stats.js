@@ -9,8 +9,10 @@ const auth_phase = require('../lib/auth');
 const errors = require('../lib/errors');
 
 module.exports = function(app) {
-    app.get('/v1/stats/genre', auth_phase, filter_phase, function(req, res){
-        res.send(req.tracks);
-    });
+    app.get('/v1/stats/genre', auth_phase, filter_phase, getTracks);
+}
+
+let getTracks = function(req, res) {
+    res.status(200).json({divisions: req.tracks});
 }
 

@@ -1,4 +1,5 @@
 const winston = require('winston');
+const async = require('async');
 
 const Track = require('mongoose').model('Track');
 const User_Track = require('mongoose').model('User_Track');
@@ -41,7 +42,7 @@ let filterUserTracks = function(req, res, next) {
     }
 }
 
-let getTracks = function(req, res, next) {
+let getTrackIds = function(req, res, next) {
     let divided_uTracks = req.user_tracks;
     let stamp = (req.choice == 'hour' ? 'day' : 'hour');
 
@@ -57,4 +58,30 @@ let getTracks = function(req, res, next) {
     next();
 }
 
-module.exports = [getUserTracks, filterUserTracks, getTracks];
+let getTracks = function(req, res) {
+    let track_ids = req.tracks;
+    let stamp = req.stamp;
+
+    let divisions = [];
+    async.each(track_ids, function(division, next){
+        Track.find({_id: {$in: division.tracks}}, function(error, tracks){
+            if(error) next(error);
+            else {
+                let obj = {tracks: tracks};
+                obj[stamp] = division[stamp];
+                divisions.push(obj);
+                next();
+            }
+        });
+    }, function(error){
+        if(error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+            req.tracks = divisions;
+            res.send(req.tracks);
+        }
+    });
+}
+
+module.exports = [getUserTracks, filterUserTracks, getTrackIds, getTracks];
