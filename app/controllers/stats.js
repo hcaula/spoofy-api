@@ -6,12 +6,12 @@ const Track = require('mongoose').model('Track');
 const User_Track = require('mongoose').model('User_Track');
 
 const util = require('../lib/util');
+const filters = require('../lib/filters');
 const authenticateUser = require('../lib/auth').authenticateUser;
 const errors = require('../lib/errors').errors;
 
 module.exports = function(app) {
-    app.get('/v1/stats/genre/user', authenticateUser, getUserTracks, getUserTracksByHourDay, getGenresByTracks, countAndPaginateGenres);
-    app.get('/v1/stats/genre/user/time', authenticateUser, getUserTracksDividedByTime);
+    app.get('/v1/stats/genre', authenticateUser, getUserTracks, filterUserTracks)
 }
 
 /*
@@ -31,6 +31,22 @@ let getUserTracks = function(req, res, next) {
             next();
         }
     });
+}
+
+let filterUserTracks = function(req, res, next) {
+    let user_tracks = req.user_tracks;
+    
+    let period = filters.filterUserTracks({
+        begin_hour: req.query.begin_hour,
+        begin_day: req.query.begin_day,
+        end_hour: req.query.end_hour,
+        end_day: req.query.end_day
+    }, user_tracks);
+
+    if(period.error) res.status(400).json(period.error);
+    else {
+        res.status(200).send(period);
+    }
 }
 
 /* Returns an array of tracks ID's on a pair (begin_hour, end_hour) and/or (begin_day, end_day) */
