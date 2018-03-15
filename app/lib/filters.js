@@ -99,7 +99,7 @@ exports.dividePerTime = function(frequency, choice, user_tracks) {
         ret = exports.filterPerPeriod(filter, user_tracks);
         if(ret.error) return ret.error;
         else {
-            let obj = {tracks: ret.user_tracks};
+            let obj = {user_tracks: ret.user_tracks};
             obj[(choice == 'hour' ? 'day' : 'hour')] = i;
             arrayRet.push(obj);
         }

@@ -11,7 +11,7 @@ const authenticateUser = require('../lib/auth').authenticateUser;
 const errors = require('../lib/errors').errors;
 
 module.exports = function(app) {
-    app.get('/v1/stats/genre', authenticateUser, getUserTracks, filterUserTracks)
+    app.get('/v1/stats/genre', authenticateUser, getUserTracks, filterUserTracks, getTracks)
 }
 
 /*
@@ -49,16 +49,24 @@ let filterUserTracks = function(req, res, next) {
         let choice = (day ? 'day' : 'hour');
 
         req.user_tracks = filters.dividePerTime(frequency, choice, user_tracks);
-
-        res.status(200).send(req.user_tracks);
-
+        req.choice = choice;
+        next();
     }
 }
 
 let getTracks = function(req, res, next) {
-    let user_tracks = req.user_tracks;
+    let divided_uTracks = req.user_tracks;
+    let stamp = (req.choice == 'hour' ? 'day' : 'hour');
 
-    let track_ids = [];
+    let divided_track_ids = [];
+    divided_uTracks.forEach(function(division){
+        track_ids = division.user_tracks.map(ut => ut.track);
+
+        let obj = {tracks: track_ids};
+        obj[stamp] = division[stamp];
+        divided_track_ids.push(obj); 
+    });
+    res.status(200).send(divided_track_ids);
 
 }
 
