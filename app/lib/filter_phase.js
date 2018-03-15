@@ -27,7 +27,7 @@ let filterUserTracks = function(req, res, next) {
     let day = req.query.day;
     let hour = req.query.hour;
 
-    if((day && hour) || (!day && !hour)) {
+    if(day && hour) {
         res.status(400).json({
             type: 'bad_param',
             error: 'Choose either day or hour for frequency'
@@ -59,7 +59,7 @@ let getTrackIds = function(req, res, next) {
     next();
 }
 
-let getTracks = function(req, res) {
+let getTracks = function(req, res, next) {
     let track_ids = req.tracks;
     let stamp = req.stamp;
 
@@ -68,7 +68,7 @@ let getTracks = function(req, res) {
         Track.find({_id: {$in: division.tracks}}, function(error, tracks){
             if(error) next(error);
             else {
-                let obj = {};
+                let obj = {tracks: tracks};
                 obj[stamp] = division[stamp];
                 divisions.push(obj);
                 next();
@@ -80,7 +80,7 @@ let getTracks = function(req, res) {
             res.status(500).json(errors[500]);
         } else {
             req.tracks = divisions.sort((a,b) => a[stamp] - b[stamp]);
-            res.send(req.tracks);
+            next();
         }
     });
 }
