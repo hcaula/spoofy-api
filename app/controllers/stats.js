@@ -9,11 +9,11 @@ const auth_phase = require('../lib/auth_phase');
 const errors = require('../lib/errors');
 
 module.exports = function(app) {
-    app.get('/v1/stats/tracks/time', auth_phase, filter_phase, getTracksByTime);
-    app.get('/v1/stats/genres/time', auth_phase, filter_phase, getGenresByTime);
+    app.get('/v1/stats/tracks/time', auth_phase, filter_phase, getTracks);
+    app.get('/v1/stats/genres/time', auth_phase, filter_phase, getGenres);
 }
 
-let getTracksByTime = function(req, res) {
+let getTracks = function(req, res) {
     let stamp = req.stamp;
     let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
     let obj = {};
@@ -22,7 +22,7 @@ let getTracksByTime = function(req, res) {
     res.status(200).json(obj);
 }
 
-let getGenresByTime = function(req, res) {
+let getGenres = function(req, res) {
     let divisions = req.tracks;
     let stamp = req.stamp;
     let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
@@ -42,6 +42,19 @@ let getGenresByTime = function(req, res) {
 
     let obj = {};
     obj[name] = genres;
+    res.status(200).json(obj);
+}
+
+let getTracksFeatures = function(req, res) {
+    let stamp = req.stamp;
+    let divisions = req.tracks;
+    let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
+    let obj = {};
+    
+    divisions.forEach(function(){
+        
+    })  
+
     res.status(200).json(obj);
 }
 
