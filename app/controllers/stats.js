@@ -16,3 +16,7 @@ let getTracks = function(req, res) {
     res.status(200).json({divisions: req.tracks});
 }
 
+let getGenres = function(req, res) {
+    
+}
+

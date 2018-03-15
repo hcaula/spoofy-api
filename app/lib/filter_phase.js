@@ -55,6 +55,7 @@ let getTrackIds = function(req, res, next) {
         divided_tracks.push(obj); 
     });
     req.tracks = divided_tracks;
+    req.stamp = stamp;
     next();
 }
 
@@ -78,7 +79,9 @@ let getTracks = function(req, res) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
+            divisions.sort((a,b) => a[stamp] - b[stamp]);
             req.tracks = divisions;
+
             res.send(req.tracks);
         }
     });
