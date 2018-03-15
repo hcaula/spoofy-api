@@ -2,7 +2,7 @@
  * Modules
 */
 
-const auth_phase = require('../lib/auth');
+const auth_phase = require('../lib/auth_phase');
 
 const User = require('mongoose').model('User');
 

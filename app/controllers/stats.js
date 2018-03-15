@@ -5,15 +5,15 @@ const User = require('mongoose').model('User');
 const Track = require('mongoose').model('Track');
 
 const filter_phase = require('../lib/filter_phase');
-const auth_phase = require('../lib/auth');
+const auth_phase = require('../lib/auth_phase');
 const errors = require('../lib/errors');
 
 module.exports = function(app) {
-    app.get('/v1/stats/tracks/time', auth_phase, filter_phase, getTracks);
-    app.get('/v1/stats/genres/time', auth_phase, filter_phase, getGenres);
+    app.get('/v1/stats/tracks/time', auth_phase, filter_phase, getTracksByTime);
+    app.get('/v1/stats/genres/time', auth_phase, filter_phase, getGenresByTime);
 }
 
-let getTracks = function(req, res) {
+let getTracksByTime = function(req, res) {
     let stamp = req.stamp;
     let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
     let obj = {};
@@ -22,7 +22,7 @@ let getTracks = function(req, res) {
     res.status(200).json(obj);
 }
 
-let getGenres = function(req, res) {
+let getGenresByTime = function(req, res) {
     let divisions = req.tracks;
     let stamp = req.stamp;
     let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');

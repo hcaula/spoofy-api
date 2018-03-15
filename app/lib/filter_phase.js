@@ -33,8 +33,8 @@ let filterUserTracks = function(req, res, next) {
             error: 'Choose either day or hour for frequency'
         });
     } else {
-        let frequency = (day ? day : hour);
-        let choice = (day ? 'day' : 'hour');
+        let frequency = (hour ? hour : day);
+        let choice = (hour ? 'hour' : 'day');
 
         req.user_tracks = filters.dividePerTime(frequency, choice, user_tracks);
         req.choice = choice;
