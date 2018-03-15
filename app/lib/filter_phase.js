@@ -68,7 +68,7 @@ let getTracks = function(req, res) {
         Track.find({_id: {$in: division.tracks}}, function(error, tracks){
             if(error) next(error);
             else {
-                let obj = {tracks: tracks};
+                let obj = {};
                 obj[stamp] = division[stamp];
                 divisions.push(obj);
                 next();
@@ -79,9 +79,7 @@ let getTracks = function(req, res) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            divisions.sort((a,b) => a[stamp] - b[stamp]);
-            req.tracks = divisions;
-
+            req.tracks = divisions.sort((a,b) => a[stamp] - b[stamp]);
             res.send(req.tracks);
         }
     });
