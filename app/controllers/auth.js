@@ -10,7 +10,7 @@ const winston = require('winston');
 
 const User = require('mongoose').model('User');
 
-const errors = require('../lib/errors').errors;
+const errors = require('../lib/errors');
 const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
