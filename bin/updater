@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+
+let start = Date.now();
+
+const winston = require('winston');
+const async = require('async');
+
+require('../app/models/user')();
+require('../app/models/user-track')();
+require('../app/models/track')();
+
+const configWinston = require('../config/winston').configWinston;
+const initMongoose = require('../config/database').initMongoose;
+
+const Track = require('mongoose').model('Track');
+
+configWinston(function(){
+    winston.info("Starting updater job.");
+
+    initMongoose(function(error){
+        if(error) {
+            winston.log(error);
+            process.exit(0);
+        } else {
+            winston.info("Retrieving tracks.");
+            Track.find({}, function(error, tracks){
+                if(error) {
+                    winston.error(error.stack);
+                    process.exit(0);
+                } else {
+                    async.eachSeries(tracks, function(track, next){
+                        track.features = {
+                            danceability: track.danceability,
+                            energy: track.energy,
+                            key: track.key,
+                            loudness: track.loudness,
+                            mode: track.mode,
+                            speechiness: track.speechiness,
+                            acousticness: track.acousticness,
+                            instrumentalness: track.instrumentalness,
+                            liveness: track.liveness,
+                            valence: track.valence,
+                            tempo: track.tempo,
+                            time_signature: track.time_signature
+                        }
+                        track.save(function(error){
+                            if(error) next(error);
+                            else next();
+                        });
+                    }, function(error){
+                        if(error) {
+                            winston.error(error.stack);
+                            process.exit(0);
+                        } else {
+                            Track.update(
+                                {},
+                                { $unset: 
+                                    {
+                                        danceability: '',
+                                        energy: '',
+                                        key: '',
+                                        loudness: '',
+                                        mode: '',
+                                        speechiness: '',
+                                        acousticness: '',
+                                        instrumentalness: '',
+                                        liveness: '',
+                                        valence: '',
+                                        tempo: '',
+                                        time_signature: ''
+                                    }
+                                },
+                            function(error){
+                                if(error) {
+                                    winston.error(error.stack);
+                                    process.exit(0);
+                                } else {
+                                    let elapsed = (Date.now() - start)/1000;
+                                    winston.info(`Scheduler job executed successfully in approximately ${elapsed} seconds.`);
+                                    winston.info('Exiting scheduler execution.');
+                                    process.exit(0);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+});
