@@ -9,14 +9,16 @@ const base64 = require('base-64');
 const winston = require('winston');
 
 const User = require('mongoose').model('User');
+const Session = require('mongoose').model('Session');
 
 const errors = require('../lib/errors');
+const util = require('../lib/util');
 const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
 module.exports = function(app) {
     app.get('/v1/auth', requestUserAuthorization);
-    app.get('/v1/callback', requestAccessToken, requestUserData, loginOrRegister);
+    app.get('/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
 }
 
 let requestUserAuthorization = function(req, res) {
@@ -108,17 +110,13 @@ let loginOrRegister = function(req, res, next) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else if (user) {
+            req.user = user;
             user.token = req.token;
             user.save(function(error){
                 if(error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
-                } else {
-                    res.status(200).json({
-                        message: "We're so glad you're already registered with us. Thank you.",
-                        access_token: user.token.access_token
-                    });
-                }
+                } else next();
             });
         } else {
             user = new User(req.user);
@@ -128,12 +126,45 @@ let loginOrRegister = function(req, res, next) {
                     res.status(500).json(errors[500]);
                 } else {
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
-                    res.status(200).json({
-                        message: "User has been created successfully, redirect to dashboard page now.",
-                        access_token: user.token.access_token
-                    });
+                    next();
                 }
             });
         }
+    });
+}
+
+let startSession = function(req, res, next) {
+    let user = req.user;
+    let token = req.token;
+    let next_week = util.calculateNextWeek();
+
+    let current_session;
+
+    Session.findOne({user: user._id}, function(error, session){
+        if(error) {
+            winston.error(error.stack);
+            res.status(500).send(errors[500]);
+        } else if (!session) {
+            let new_session = new Session({
+                user: user._id,
+                token: token.access_token,
+                expiration_date: next_week
+            });
+
+            current_session = new_session;
+        } else {
+            current_session = session;
+            current_session.expiration_date = next_week;
+        }
+
+        current_session.save(function(error){
+            if(error) {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
+                res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, signed: true})
+                res.redirect('/dashboard');
+            }
+        });
     });
 }
