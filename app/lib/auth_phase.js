@@ -4,34 +4,58 @@ const Session = require('mongoose').model('Session');
 const User = require('mongoose').model('User');
 
 const errors = require('./errors');
+const util = require('../lib/util');
 
-module.exports = [
-    function(req, res, next) {
-        let access_token = req.cookies.spoofy;
+let getSession = function(req, res, next) {
+    let access_token = req.signedCookies['spoofy'];
+    let caller = req.path.slice(1);
+    req.caller = caller.slice(0, caller.indexOf('/'));
 
-        if(!access_token) {
+    if(!access_token) {
+        if(caller == 'api') {
             res.set('WWW-Authenticate', 'spoofy-cookie');
             res.status(401).json(errors[401]('no_token_provided'));
-        } else {
-            Session.findOne({"token": access_token}, function(error, session){
-                if(!session) {
+        } else next();
+    } else {
+        Session.findOne({"token": access_token}, function(error, session){
+            if(error) {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else if(!session) {
+                if(caller == 'api'){
                     res.set('WWW-Authenticate', 'spoofy-cookie');
                     res.status(401).json(errors[401]('permission_denied'));
-                } else {
-                    let expiration_date = session.expiration_date;
-                    let today = new Date();
-                    if(today > expiration_date) {
+                } else next();
+            } else {
+                let expiration_date = session.expiration_date;
+                let today = new Date();
+                if(today > expiration_date) {
+                    if(caller == 'api'){
                         res.set('WWW-Authenticate', 'spoofy-cookie');
                         res.status(401).json(errors[401]('session_expired'));
-                    } else {
-                        req.user = session.user;
-                        next();
-                    }
+                    } else next();
+                } else {
+                    let next_week = util.calculateNextWeek();
+                    session.expiration_date = next_week;
+                    session.save(function(error){
+                        if(error) {
+                            winston.error(error.stack);
+                            res.status(500).json(errors[500]);
+                        } else {
+                            res.cookie('spoofy', access_token, {expires: next_week, signed: true, httpOnly: true, hostOnly: true})
+                            req.user = (session.user || '');
+                            next();
+                        }
+                    })
                 }
-            });
-        }
-    },
-    function(req, res, next) {
+            }
+        });
+    }
+};
+
+let getUser = function(req, res, next) {
+    if(!req.user) next();
+    else {
         User.findById(req.user, function(error, user){
             if(error) {
                 winston.error(error.stack);
@@ -47,4 +71,9 @@ module.exports = [
             }
         });
     }
+}
+
+module.exports = [
+    getSession,
+    getUser
 ];

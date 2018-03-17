@@ -18,7 +18,7 @@ const initJob = require('../lib/jobs').initJob;
 
 module.exports = function(app) {
     app.get('/api/v1/auth', requestUserAuthorization);
-    app.get('/api//v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
+    app.get('/api/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
 }
 
 let requestUserAuthorization = function(req, res) {
@@ -120,11 +120,12 @@ let loginOrRegister = function(req, res, next) {
             });
         } else {
             user = new User(req.user);
-            user.save(function(error){
+            user.save(function(error, u){
                 if(error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
+                    req.user = u;
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
                     next();
                 }
@@ -145,15 +146,14 @@ let startSession = function(req, res, next) {
             winston.error(error.stack);
             res.status(500).send(errors[500]);
         } else if (!session) {
-            let new_session = new Session({
+            current_session = new Session({
                 user: user._id,
                 token: token.access_token,
                 expiration_date: next_week
             });
-
-            current_session = new_session;
         } else {
             current_session = session;
+            current_session.token = token.access_token;
             current_session.expiration_date = next_week;
         }
 
@@ -162,7 +162,7 @@ let startSession = function(req, res, next) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
             } else {
-                res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, signed: true})
+                res.cookie('spoofy', token.access_token, {expires: next_week, signed: true, httpOnly: true, hostOnly: true})
                 res.redirect('/dashboard');
             }
         });
