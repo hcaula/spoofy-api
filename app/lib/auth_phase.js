@@ -7,9 +7,9 @@ const errors = require('./errors');
 const util = require('../lib/util');
 
 let getSession = function(req, res, next) {
-    let access_token = req.signedCookies['spoofy'];
+    let access_token = req.cookies.spoofy;
     let caller = req.path.slice(1);
-    req.caller = caller.slice(0, caller.indexOf('/'));
+    caller = caller.slice(0, caller.indexOf('/'));
 
     if(!access_token) {
         if(caller == 'api') {
@@ -42,7 +42,7 @@ let getSession = function(req, res, next) {
                             winston.error(error.stack);
                             res.status(500).json(errors[500]);
                         } else {
-                            res.cookie('spoofy', access_token, {expires: next_week, signed: true, httpOnly: true, hostOnly: true})
+                            res.cookie('spoofy', access_token, {expires: next_week, httpOnly: true, hostOnly: true})
                             req.user = (session.user || '');
                             next();
                         }

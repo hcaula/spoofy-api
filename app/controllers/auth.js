@@ -162,7 +162,7 @@ let startSession = function(req, res, next) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
             } else {
-                res.cookie('spoofy', token.access_token, {expires: next_week, signed: true, httpOnly: true, hostOnly: true})
+                res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, hostOnly: true})
                 res.redirect('/dashboard');
             }
         });

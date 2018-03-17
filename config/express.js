@@ -8,7 +8,7 @@ exports.module = function() {
   let app = express();
 
   // app.use(express.static('./public'));
-  app.use(cookieParser(process.env.COOKIE_SECRET || config.cookie_secret));
+  app.use(cookieParser());
   app.use(bodyParser.urlencoded({extended: true}));
   app.use(bodyParser.json());
 
