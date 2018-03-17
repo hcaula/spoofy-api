@@ -10,10 +10,10 @@ const errors = require('../lib/errors');
 const statistics = require('../lib/statistics');
 
 module.exports = function(app) {
-    app.get('/v1/tracks/time', auth_phase, filter_phase, getTracks);
-    app.get('/v1/genres/time', auth_phase, filter_phase, getGenres);
-    app.get('/v1/features/tracks', auth_phase, filter_phase, getFeaturesForAllTracks);
-    app.get('/v1/features/stats', auth_phase, filter_phase, getFeaturesStatistics);
+    app.get('/api/v1/tracks/time', auth_phase, filter_phase, getTracks);
+    app.get('/api/v1/genres/time', auth_phase, filter_phase, getGenres);
+    app.get('/api/v1/features/tracks', auth_phase, filter_phase, getFeaturesForAllTracks);
+    app.get('/api/v1/features/stats', auth_phase, filter_phase, getFeaturesStatistics);
 }
 
 let getTracks = function(req, res) {
