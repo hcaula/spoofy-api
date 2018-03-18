@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const winston = require('winston');
+const config = require('../../config/config')
 
 const Session = require('mongoose').model('Session');
 
@@ -22,9 +23,15 @@ module.exports = function(app) {
                     res.status(500).json(errors[500]);
                 } else {
                     res.clearCookie("spoofy");
-                    res.redirect('/');
+                    res.status(200).json({
+                        "message": "User logged out successfully."
+                    });
                 }
             });
-        } else res.redirect('/');
+        } else {
+            res.status(200).json({
+                "message": "No user was found."
+            });
+        }
     });
 }
