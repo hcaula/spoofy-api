@@ -44,7 +44,7 @@ let getSession = function(req, res, next) {
                         } else {
                             let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
 
-                            res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true, hostOnly: true});
+                            res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true});
                             req.user = (session.user || '');
                             next();
                         }
