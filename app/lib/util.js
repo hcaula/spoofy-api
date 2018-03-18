@@ -3,6 +3,20 @@ exports.calculateExpirationDate = function(expires_in){
     return new Date(now + (expires_in*1000));
 }
 
+exports.calculateNextWeek = function() {
+    let today = new Date();
+    let nextweek = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()+7,
+        today.getHours(),
+        today.getMinutes(),
+        today.getSeconds(),
+        today.getMilliseconds()
+    );
+    return nextweek;
+}
+
 exports.searchByField = function(field, value, array) {
     let index = -1;
     array.forEach(function(el, i){

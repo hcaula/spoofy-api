@@ -7,7 +7,7 @@ const auth_phase = require('../lib/auth_phase');
 const User = require('mongoose').model('User');
 
 module.exports = function(app) {
-    app.get('/v1/user', auth_phase, getUser);
+    app.get('/api/v1/me', auth_phase, getUser);
 }
 
 let getUser = function(req, res) {

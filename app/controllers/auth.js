@@ -9,33 +9,15 @@ const base64 = require('base-64');
 const winston = require('winston');
 
 const User = require('mongoose').model('User');
+const Session = require('mongoose').model('Session');
 
 const errors = require('../lib/errors');
+const util = require('../lib/util');
 const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
 module.exports = function(app) {
-    app.get('/v1/auth', requestUserAuthorization);
-    app.get('/v1/callback', requestAccessToken, requestUserData, loginOrRegister);
-}
-
-let requestUserAuthorization = function(req, res) {
-    let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
-    let response_type = 'code';
-    let redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
-    let scope = 'user-read-recently-played user-read-email user-read-private'
-    
-    let host = 'accounts.spotify.com';
-    let path = '/authorize/?';
-    path += `client_id=${client_id}&`;
-    path += `response_type=${response_type}&`;
-    path += `redirect_uri=${redirect_uri}&`;
-    path += `scope=${scope}&`;
-    path += `show_dialog=${true}`;
-    
-    let uri = `https://${host}${path}`;
-    
-    res.redirect(uri);
+    app.get('/api/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
 }
 
 let requestAccessToken = function(req, res, next) {
@@ -108,32 +90,61 @@ let loginOrRegister = function(req, res, next) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else if (user) {
+            req.user = user;
             user.token = req.token;
             user.save(function(error){
                 if(error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
-                } else {
-                    res.status(200).json({
-                        message: "We're so glad you're already registered with us. Thank you.",
-                        access_token: user.token.access_token
-                    });
-                }
+                } else next();
             });
         } else {
             user = new User(req.user);
-            user.save(function(error){
+            user.save(function(error, u){
                 if(error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
+                    req.user = u;
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
-                    res.status(200).json({
-                        message: "User has been created successfully, redirect to dashboard page now.",
-                        access_token: user.token.access_token
-                    });
+                    next();
                 }
             });
         }
+    });
+}
+
+let startSession = function(req, res, next) {
+    let user = req.user;
+    let token = req.token;
+    let next_week = util.calculateNextWeek();
+
+    let current_session;
+
+    Session.findOne({user: user._id}, function(error, session){
+        if(error) {
+            winston.error(error.stack);
+            res.status(500).send(errors[500]);
+        } else if (!session) {
+            current_session = new Session({
+                user: user._id,
+                token: token.access_token,
+                expiration_date: next_week
+            });
+        } else {
+            current_session = session;
+            current_session.token = token.access_token;
+            current_session.expiration_date = next_week;
+        }
+
+        current_session.save(function(error){
+            if(error) {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
+                res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, hostOnly: true})
+                res.redirect((process.env.CLIENT_URL || config.client.url));
+            }
+        });
     });
 }
