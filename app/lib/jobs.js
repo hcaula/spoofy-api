@@ -48,7 +48,7 @@ const refreshToken = function(next) {
 
         request('https', options, body, function(error, response){
             if(error) {
-                let err = new Error(error.message);
+                let err = new Error(error);
                 err.message = 'Authentication error.';
                 next(err);
             } else {
@@ -79,7 +79,7 @@ const updateToken = function(next) {
 
         user.save(function(error, newUser){
             if(error) {
-                let err = new Error(error.message);
+                let err = new Error(error);
                 err.type = 'db_error';
                 next(err);
             } else {
@@ -111,7 +111,7 @@ const getRecentlyPlayedTracks = function(next) {
 
     request('https', options, function(error, response){
         if(error) {
-            let err = new Error(error.message);
+            let err = new Error(error);
             err.message = 'Authentication error.';
             next(err);
         } else {
@@ -186,7 +186,7 @@ const getTracksFeatures = function(next) {
 
     request('https', options, function(error, response){
         if(error) {
-            let err = new Error(error.message);
+            let err = new Error(error);
             err.message = error.message;
             next(err);
         } else {
@@ -218,7 +218,7 @@ const getArtists = function(next) {
 
     request('https', options, function(error, response){
         if(error) {
-            let err = new Error(error.message);
+            let err = new Error(error);
             err.message = error.message;
             next(err);
         } else {

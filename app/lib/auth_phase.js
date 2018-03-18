@@ -42,7 +42,9 @@ let getSession = function(req, res, next) {
                             winston.error(error.stack);
                             res.status(500).json(errors[500]);
                         } else {
-                            res.cookie('spoofy', access_token, {expires: next_week, httpOnly: true, hostOnly: true})
+                            let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
+
+                            res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true, hostOnly: true});
                             req.user = (session.user || '');
                             next();
                         }
