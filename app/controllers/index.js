@@ -14,6 +14,8 @@ module.exports = function(app) {
         else res.status(200).json({user: false});
     });
 
+    // TEST CHANGES
+
     app.get('/logout', auth_phase, function(req, res){
         if(req.user) {
             Session.remove({user: req.user._id}, function(error){
