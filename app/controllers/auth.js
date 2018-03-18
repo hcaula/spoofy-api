@@ -163,7 +163,7 @@ let startSession = function(req, res, next) {
                 res.status(500).json(errors[500]);
             } else {
                 res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, hostOnly: true})
-                res.redirect('/dashboard');
+                res.redirect((process.env.CLIENT_URL || config.client.url));
             }
         });
     });
