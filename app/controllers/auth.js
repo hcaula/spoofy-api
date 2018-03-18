@@ -17,27 +17,7 @@ const request = require('../lib/requests').request;
 const initJob = require('../lib/jobs').initJob;
 
 module.exports = function(app) {
-    app.get('/api/v1/auth', requestUserAuthorization);
     app.get('/api/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
-}
-
-let requestUserAuthorization = function(req, res) {
-    let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
-    let response_type = 'code';
-    let redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
-    let scope = 'user-read-recently-played user-read-email user-read-private'
-    
-    let host = 'accounts.spotify.com';
-    let path = '/authorize/?';
-    path += `client_id=${client_id}&`;
-    path += `response_type=${response_type}&`;
-    path += `redirect_uri=${redirect_uri}&`;
-    path += `scope=${scope}&`;
-    path += `show_dialog=${true}`;
-    
-    let uri = `https://${host}${path}`;
-    
-    res.redirect(uri);
 }
 
 let requestAccessToken = function(req, res, next) {
