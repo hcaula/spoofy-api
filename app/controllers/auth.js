@@ -21,6 +21,8 @@ module.exports = function(app) {
 }
 
 let requestAccessToken = function(req, res, next) {
+    console.log('hello!');
+
     if(req.query.error) {
         winston.error(req.query.error);
         res.status(500).json(errors[500]);
@@ -46,7 +48,7 @@ let requestAccessToken = function(req, res, next) {
 
         request('https', options, body, function(error, response){
             if(error) {
-                winston.error(error.stack);
+                winston.error(new Error(error).stack);
                 res.status(500).json(errors[500]);
             } else {
                 req.token = response;
@@ -67,7 +69,7 @@ let requestUserData = function(req, res, next) {
 
     request('https', options, function(error, response){
         if(error) {
-            winston.error(error.stack);
+            winston.error(new Error(error).stack);
             res.status(500).json(errors[500]);
         } else {
             req.user = {
@@ -87,7 +89,7 @@ let requestUserData = function(req, res, next) {
 let loginOrRegister = function(req, res, next) {
     User.findById(req.user._id, function(error, user){
         if(error) {
-            winston.error(error.stack);
+            winston.error(new Error(error).stack);
             res.status(500).json(errors[500]);
         } else if (user) {
             req.user = user;
@@ -142,9 +144,11 @@ let startSession = function(req, res, next) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
             } else {
-                res.cookie('spoofy', token.access_token, {expires: next_week, httpOnly: true, hostOnly: true})
+                let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
+
+                res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true, hostOnly: true});
                 res.redirect((process.env.CLIENT_URL || config.client.url));
-            }
+            }   
         });
     });
 }
