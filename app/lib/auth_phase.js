@@ -8,13 +8,13 @@ const errors = require('./errors');
 const util = require('./util');
 
 let getSession = function(req, res, next) {
-    let access_token = req.cookies.spoofy;
+    let access_token = req.headers.access_token;
     let caller = req.path.slice(1);
     caller = caller.slice(0, caller.indexOf('/'));
 
     if(!access_token) {
         if(caller == 'api') {
-            res.set('WWW-Authenticate', 'spoofy-cookie');
+            res.set('WWW-Authenticate', 'access_token');
             res.status(401).json(errors[401]('no_token_provided'));
         } else next();
     } else {
@@ -24,7 +24,7 @@ let getSession = function(req, res, next) {
                 res.status(500).json(errors[500]);
             } else if(!session) {
                 if(caller == 'api'){
-                    res.set('WWW-Authenticate', 'spoofy-cookie');
+                    res.set('WWW-Authenticate', 'access_token');
                     res.status(401).json(errors[401]('permission_denied'));
                 } else next();
             } else {
@@ -32,7 +32,7 @@ let getSession = function(req, res, next) {
                 let today = new Date();
                 if(today > expiration_date) {
                     if(caller == 'api'){
-                        res.set('WWW-Authenticate', 'spoofy-cookie');
+                        res.set('WWW-Authenticate', 'access_token');
                         res.status(401).json(errors[401]('session_expired'));
                     } else next();
                 } else {
@@ -43,9 +43,6 @@ let getSession = function(req, res, next) {
                             winston.error(error.stack);
                             res.status(500).json(errors[500]);
                         } else {
-                            let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
-
-                            res.cookie('spoofy', access_token, {expires: next_week, domain: domain, httpOnly: true});
                             req.user = (session.user || '');
                             next();
                         }
