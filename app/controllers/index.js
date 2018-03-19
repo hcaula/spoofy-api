@@ -11,23 +11,17 @@ const errors = require('../lib/errors');
 module.exports = function(app) {
 
     app.get('/login', auth_phase, function(req, res){
-        let client_url = (process.env.CLIENT_URL || config.client.client_url);
-        res.set({'Access-Control-Allow-Origin': client_url});
-        res.set({'Access-Control-Allow-Credentials': true});
         if(req.user) res.status(200).json({user: req.user});
         else res.status(200).json({user: false});
     });
 
     app.get('/logout', auth_phase, function(req, res){
-        res.set({'Access-Control-Allow-Origin': client_url});
-        res.set({'Access-Control-Allow-Credentials': true});
         if(req.user) {
             Session.remove({user: req.user._id}, function(error){
                 if(error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    res.clearCookie("spoofy");
                     res.status(200).json({
                         "message": "User logged out successfully."
                     });

@@ -141,13 +141,7 @@ let startSession = function(req, res, next) {
             if(error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
-            } else {
-                let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
-                console.log(domain);
-
-                res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true});
-                res.redirect((process.env.CLIENT_URL || config.client.url));
-            }   
+            } else res.redirect((process.env.CLIENT_URL || config.client.url)+'?token='+token.access_token);
         });
     });
 }
