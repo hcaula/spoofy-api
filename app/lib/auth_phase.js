@@ -1,10 +1,11 @@
 const winston = require('winston');
+const config = require('../../config/config');
 
 const Session = require('mongoose').model('Session');
 const User = require('mongoose').model('User');
 
 const errors = require('./errors');
-const util = require('../lib/util');
+const util = require('./util');
 
 let getSession = function(req, res, next) {
     let access_token = req.cookies.spoofy;
@@ -44,7 +45,7 @@ let getSession = function(req, res, next) {
                         } else {
                             let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
 
-                            res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true});
+                            res.cookie('spoofy', access_token, {expires: next_week, domain: domain, httpOnly: true});
                             req.user = (session.user || '');
                             next();
                         }

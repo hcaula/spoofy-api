@@ -21,8 +21,6 @@ module.exports = function(app) {
 }
 
 let requestAccessToken = function(req, res, next) {
-    console.log('hello!');
-
     if(req.query.error) {
         winston.error(req.query.error);
         res.status(500).json(errors[500]);
@@ -145,7 +143,6 @@ let startSession = function(req, res, next) {
                 res.status(500).json(errors[500]);
             } else {
                 let domain = (process.env.CLIENT_DOMAIN || config.client.domain);
-
                 console.log(domain);
 
                 res.cookie('spoofy', token.access_token, {expires: next_week, domain: domain, httpOnly: true});
