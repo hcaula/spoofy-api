@@ -7,6 +7,7 @@ const request = require('./requests').request;
 
 const User = require('mongoose').model('User');
 const User_Track = require('mongoose').model('User_Track');
+const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
 
 let results;
@@ -133,22 +134,22 @@ const shaveTracks = function(next) {
     let played_ats = (tracks.map(t => new Date(t.played_at)));
     let userId = user._id;
 
-    let query = {user: userId, track: {$in: trackIds}, played_at: {$in: played_ats}};
-
-    User_Track.find(query, function(error, uTracks){
+    let query = {user: userId, track: {$in: trackIds}, "played_at.fullDate": {$in: played_ats}};
+    
+    Play.find(query, function(error, play){
         if(error) {
             let err = new Error(error);
             err.type = "db_error";
             next(err);
         } else {
-            let diff = tracks.length - uTracks.length;
+            let diff = tracks.length - play.length;
 
             if(diff == 0) {
                 winston.warn("User has not listened to any new tracks.");
                 next({stop: true});
             } else {
-                let uTracksIds = uTracks.map(s => s.track);
-                let shavedTracks = tracks.filter(t => !uTracksIds.includes(t.track.id));
+                let playIds = play.map(s => s.track);
+                let shavedTracks = tracks.filter(t => !playIds.includes(t.track.id));
 
                 /* We have to check again in case the user has listened to the same song
                 more than once on his/her last recently played tracks */
@@ -335,22 +336,31 @@ const createOrUpdateUserTracks = function(next) {
     let tracks = results.tracks;
 
     async.eachSeries(tracks, function(track, next){
-        User_Track.update(
-            {user: user._id, track: track._id},
-            {$addToSet: {played_at: track.played_at}},
-            {upsert: true},
-            function(error) {
-                if(error) {
-                    let err = new Error(error);
-                    err.type = "db_error";
-                    next(err);
-                } else next();
+        let date = new Date(track.played_at);
+        let play = new Play({
+            user: user._id,
+            track: track._id,
+            played_at: {
+                fullDate: date,
+                year: date.getFullYear(),
+                day: date.getDay(),
+                hour: date.getHours(),
+                minutes: date.getMinutes()
             }
-        );
+        });
+
+        play.save(function(error){
+            if(error) {
+                let err = new Error(error);
+                err.type = "db_error";
+                next(err);
+            } else next();
+        }); 
+        
     }, function(error){
         if(error) next(error);
         else {
-            winston.info("New user-track relationships created/updated successfully.")
+            winston.info("New Play created successfully.")
             next();
         }
     });
