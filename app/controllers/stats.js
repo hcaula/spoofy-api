@@ -1,3 +1,4 @@
+
 const winston = require('winston');
 const async = require('async');
 
@@ -8,6 +9,7 @@ const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
 const errors = require('../lib/errors');
 const statistics = require('../lib/statistics');
+const countElement = require('../lib/util').countElement;
 
 module.exports = function(app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
@@ -17,35 +19,34 @@ module.exports = function(app) {
 }
 
 let getTracks = function(req, res) {
-    let stamp = req.stamp;
-    let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
-    let obj = {};
-    obj[name] = req.tracks;
-
-    res.status(200).json(obj);
+    res.status(200).json({
+        tracks: req.tracks
+    });
 }
 
 let getGenres = function(req, res) {
-    let divisions = req.tracks;
-    let stamp = req.stamp;
-    let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
+    let tracks = req.tracks;
+    let genres = [], counted_genres = [], ret_genres = [];
 
-    let genres = [];
-    divisions.forEach(function(division){
-        let all_genres = [];
-        division.tracks.forEach(function(track){
-            track.genres.forEach(function(genre){
-                if(!all_genres.includes(genre)) all_genres.push(genre);
-            });
-        });
-        let obj = {genres: all_genres};
-        obj[stamp] = division[stamp];
-        genres.push(obj);
+    tracks.forEach(function(track){
+        track.genres.forEach(g => genres.push(g));
     });
 
-    let obj = {};
-    obj[name] = genres;
-    res.status(200).json(obj);
+    genres.forEach(function(g){
+        if(!counted_genres.includes(g)) {
+            counted_genres.push(g);
+            ret_genres.push({
+                genre: g,
+                times_listened: countElement(g, genres)
+            });
+        }
+    });
+
+    let sorted = ret_genres.sort((a, b) => b.times_listened - a.times_listened)
+
+    res.status(200).json({
+        genres: sorted
+    });
 }
 
 let getFeaturesForAllTracks = function(req, res) {

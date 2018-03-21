@@ -27,3 +27,7 @@ exports.searchByField = function(field, value, array) {
     });
     return index;
 }
+
+exports.countElement = function(elem, array) {
+    return array.filter(x => (x == elem)).length;
+}

@@ -53,8 +53,7 @@ let getPlays = function(req, res, next) {
                     res.status(500).json(errors[500]);
                 } else {
                     req.plays = plays;
-                    res.send(plays);
-                    // next();
+                    next();
                 }
             });
         }
@@ -86,8 +85,7 @@ let getTracks = function(req, res, next) {
         } else {
             tracks.sort((a, b) => a.played_at[sort_by] - b.played_at[sort_by]);
             req.tracks = tracks;
-            res.send(tracks);
-            // next();
+            next();
         }
     });
 }
