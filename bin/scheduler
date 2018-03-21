@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.env.ENV_NODE = "production";
+
 let start = Date.now();
 
 const winston = require('winston');
@@ -7,6 +9,7 @@ const winston = require('winston');
 require('../app/models/user')();
 require('../app/models/user-track')();
 require('../app/models/track')();
+require('../app/models/play')();
 
 const configWinston = require('../config/winston').configWinston;
 const initMongoose = require('../config/database').initMongoose;
