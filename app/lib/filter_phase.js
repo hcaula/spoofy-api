@@ -5,7 +5,6 @@ const Track = require('mongoose').model('Track');
 const User_Track = require('mongoose').model('User_Track');
 const Play = require('mongoose').model('Play');
 
-const filters = require('../lib/filters');
 const errors = require('../lib/errors');
 
 let getPlays = function(req, res, next) {

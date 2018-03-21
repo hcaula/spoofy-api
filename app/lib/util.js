@@ -17,7 +17,7 @@ exports.calculateNextWeek = function() {
     return nextweek;
 }
 
-exports.searchByField = function(field, value, array) {
+exports.searchByField = function(value, field, array) {
     let index = -1;
     array.forEach(function(el, i){
         if(el[field] == value) {

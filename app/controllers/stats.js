@@ -9,12 +9,12 @@ const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
 const errors = require('../lib/errors');
 const statistics = require('../lib/statistics');
-const countElement = require('../lib/util').countElement;
+const util = require('../lib/util');
 
 module.exports = function(app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
     app.get('/api/v1/stats/genres/', auth_phase, filter_phase, getGenres);
-    app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeaturesForAllTracks);
+    app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeatures);
     app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
 }
 
@@ -37,7 +37,7 @@ let getGenres = function(req, res) {
             counted_genres.push(g);
             ret_genres.push({
                 genre: g,
-                times_listened: countElement(g, genres)
+                times_listened: util.countElement(g, genres)
             });
         }
     });
@@ -49,25 +49,15 @@ let getGenres = function(req, res) {
     });
 }
 
-let getFeaturesForAllTracks = function(req, res) {
-    let stamp = req.stamp;
-    let divisions = req.tracks;
-    let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
-    let feature = req.query.feature;
-    let obj = {};
+let getFeatures = function(req, res) {
+    let tracks = req.tracks;
+    let features = [];
     
-    let all_features = [];
-    divisions.forEach(function(division){
-        let features = [];
-        division.tracks.forEach(function(track){
-            features.push(track.features);
-        });
-        let obj = {features: features};
-        obj[stamp] = division[stamp];
-        all_features.push(obj);
+    tracks.forEach(function(track){
+        features.push({features: track.features, played_at: track.played_at});
     });
 
-    res.status(200).json({features: all_features});
+    res.status(200).json({features: features});
 }
 
 let getFeaturesStatistics = function(req, res) {
