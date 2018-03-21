@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.env.ENV_NODE = "production";
+
 let start = Date.now();
 
 const winston = require('winston');

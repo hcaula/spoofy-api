@@ -6,7 +6,6 @@ const winston = require('winston');
 const request = require('./requests').request;
 
 const User = require('mongoose').model('User');
-const User_Track = require('mongoose').model('User_Track');
 const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
 
