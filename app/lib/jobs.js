@@ -328,9 +328,9 @@ const saveTracks = function(next) {
     });
 }
 
-/* Update user-tracks on our DB */
-const createOrUpdateUserTracks = function(next) {
-    winston.info("Creating/updating new user-track relationships.");
+/* Create playes on our DB */
+const createPlays = function(next) {
+    winston.info("Creating/updating new plays.");
 
     let user = results.user;
     let tracks = results.tracks;
@@ -356,11 +356,11 @@ const createOrUpdateUserTracks = function(next) {
                 next(err);
             } else next();
         }); 
-        
+
     }, function(error){
         if(error) next(error);
         else {
-            winston.info("New Play created successfully.")
+            winston.info("New play created successfully.")
             next();
         }
     });
@@ -384,7 +384,7 @@ exports.initJob = function(users, next) {
             getArtists,
             gatherTracksInfo,
             saveTracks,
-            createOrUpdateUserTracks
+            createPlays
         ], function(error){
             if(error && !error.stop) next(error);
             else if (error && error.stop) {
