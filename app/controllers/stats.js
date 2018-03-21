@@ -1,6 +1,7 @@
 
 const winston = require('winston');
 const async = require('async');
+const simple_statistics = require('simple-statistics');
 
 const User = require('mongoose').model('User');
 const Track = require('mongoose').model('Track');
@@ -8,7 +9,6 @@ const Track = require('mongoose').model('Track');
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
 const errors = require('../lib/errors');
-const statistics = require('../lib/statistics');
 const util = require('../lib/util');
 
 module.exports = function(app) {
@@ -19,9 +19,7 @@ module.exports = function(app) {
 }
 
 let getTracks = function(req, res) {
-    res.status(200).json({
-        tracks: req.tracks
-    });
+    res.status(200).json({tracks: req.tracks});
 }
 
 let getGenres = function(req, res) {
@@ -44,9 +42,7 @@ let getGenres = function(req, res) {
 
     let sorted = ret_genres.sort((a, b) => b.times_listened - a.times_listened)
 
-    res.status(200).json({
-        genres: sorted
-    });
+    res.status(200).json({genres: sorted});
 }
 
 let getFeatures = function(req, res) {
@@ -61,12 +57,35 @@ let getFeatures = function(req, res) {
 }
 
 let getFeaturesStatistics = function(req, res) {
-    let stamp = req.stamp;
-    let divisions = req.tracks;
-    let name = stamp + (stamp[stamp.length-1] != 's' ? 's' : '');
-    let obj = {};
-    
-    stats = statistics.getTracksFeaturesStatistics(divisions, stamp);
+    let tracks = req.tracks;
+    let stats = {}, features = {};
 
-    res.status(200).json(stats);
+    tracks.forEach(function(track){
+        for(let param in track.features) {
+            let elem = track.features[param]; 
+            if(typeof elem == "number" && elem) {
+                if(!features[param]) features[param] = [];
+                features[param].push(elem);
+            }
+        }
+    });
+
+    for(let feature in features) {
+        let arr = features[feature];
+        if(arr.length > 1) {
+            stats[feature] = {
+                mean: simple_statistics.mean(arr),
+                median: simple_statistics.median(arr),
+                mode: simple_statistics.mode(arr),
+                variance: simple_statistics.variance(arr),
+                sample_variance: simple_statistics.sampleVariance(arr),
+                standard_deviation: simple_statistics.standardDeviation(arr),
+                sample_standard_deviation: simple_statistics.sampleStandardDeviation(arr),
+                median_absolute_deviation: simple_statistics.medianAbsoluteDeviation(arr),
+                interquartile_range: simple_statistics.interquartileRange(arr)
+            }
+        }
+    }
+
+    res.status(200).json({statistics: stats})
 }
