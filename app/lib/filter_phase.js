@@ -23,43 +23,42 @@ let getPlays = function(req, res, next) {
             message: "One of your query options are invalid dates."
         });
     } else {
-    
+        let error;
+
         if(begin_hour) {
-            end_hour = (req.query.end_hour || req.body.end_hour || 0);
+            end_hour = (req.query.end_hour || req.body.end_hour || begin_hour);
             if(end_hour < begin_hour) {
-                res.status(400).json({
+                error = {
                     error: "invalid_end_hour",
                     message: "Your end_hour should be larger than your begin_hour."
-                });
-            } else {
-                let diff = Math.abs(end_hour - begin_hour);
-                query["played_at.hour"] = {$gte: begin_hour, $lte: diff}
-            }
+                }
+            } else query["played_at.hour"] = {$gte: begin_hour, $lte: end_hour}
         }
 
         if(begin_day) {
-            end_day = (req.query.end_day || req.body.end_day || 0);
+            end_day = (req.query.end_day || req.body.end_day || begin_day);
             if(end_day < begin_day) {
-                res.status(400).json({
+                error = {
                     error: "invalid_end_day",
                     message: "Your end_day should be larger than your begin_day."
-                });
-            } else {
-                let diff = Math.abs(end_day - begin_day);
-                query["played_at.day"] = {$gte: begin_day, $lte: diff}
-            }
+                };
+            } else query["played_at.day"] = {$gte: begin_day, $lte: end_day}
+        }
+
+        if(error) res.status(400).json(error);
+        else {
+            Play.find(query, function(error, plays){
+                if(error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    req.plays = plays;
+                    res.send(plays);
+                    // next();
+                }
+            });
         }
     }
-    
-    Play.find(query, function(error, plays){
-        if(error) {
-            winston.error(error.stack);
-            res.status(500).json(errors[500]);
-        } else {
-            req.plays = plays;
-            next();
-        }
-    });
 }
 
 let getTracks = function(req, res, next) {
@@ -87,7 +86,8 @@ let getTracks = function(req, res, next) {
         } else {
             tracks.sort((a, b) => a.played_at[sort_by] - b.played_at[sort_by]);
             req.tracks = tracks;
-            next();
+            res.send(tracks);
+            // next();
         }
     });
 }
