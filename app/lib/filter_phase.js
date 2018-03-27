@@ -11,50 +11,51 @@ let getPlays = function(req, res, next) {
 
     let begin_hour = (req.query.begin_hour || req.body.begin_hour);
     let begin_day = (req.query.begin_day || req.body.begin_day);
+    if(begin_hour) begin_hour = parseInt(begin_hour);
+    if(begin_day) begin_day = parseInt(begin_day);
     let end_hour, end_day;
 
     let query = {user: user._id};
 
-    if(end_hour > 23 || begin_hour < 0 || end_day > 6 || begin_day < 0) {
+    let error;
+    if(typeof begin_hour == 'number') {
+        end_hour = (req.query.end_hour || req.body.end_hour || begin_hour);
+        parseInt(end_hour);
+        if(end_hour < begin_hour) {
+            error = {
+                error: "invalid_end_hour",
+                message: "Your end_hour should be larger than your begin_hour."
+            }
+        } else query["played_at.hour"] = {$gte: begin_hour, $lte: end_hour}
+    }
+
+    if(typeof begin_day == 'number') {
+        end_day = (req.query.end_day || req.body.end_day || begin_day);
+        parseInt(end_day);
+        if(end_day < begin_day) {
+            error = {
+                error: "invalid_end_day",
+                message: "Your end_day should be larger than your begin_day."
+            };
+        } else query["played_at.day"] = {$gte: begin_day, $lte: end_day}
+    }
+
+    if(error) res.status(400).json(error);
+    else if(end_hour > 23 || begin_hour < 0 || end_day > 6 || begin_day < 0) {
         res.status(400).json({
             error: "invalid_date",
-            message: "One of your query options are invalid dates."
+            message: "One of your query options constitutes an invalid date."
         });
     } else {
-        let error;
-
-        if(begin_hour) {
-            end_hour = (req.query.end_hour || req.body.end_hour || begin_hour);
-            if(end_hour < begin_hour) {
-                error = {
-                    error: "invalid_end_hour",
-                    message: "Your end_hour should be larger than your begin_hour."
-                }
-            } else query["played_at.hour"] = {$gte: begin_hour, $lte: end_hour}
-        }
-
-        if(begin_day) {
-            end_day = (req.query.end_day || req.body.end_day || begin_day);
-            if(end_day < begin_day) {
-                error = {
-                    error: "invalid_end_day",
-                    message: "Your end_day should be larger than your begin_day."
-                };
-            } else query["played_at.day"] = {$gte: begin_day, $lte: end_day}
-        }
-
-        if(error) res.status(400).json(error);
-        else {
-            Play.find(query, function(error, plays){
-                if(error) {
-                    winston.error(error.stack);
-                    res.status(500).json(errors[500]);
-                } else {
-                    req.plays = plays;
-                    next();
-                }
-            });
-        }
+        Play.find(query, function(error, plays){
+            if(error) {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
+                req.plays = plays;
+                next();
+            }
+        });
     }
 }
 
