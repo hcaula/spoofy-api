@@ -49,7 +49,10 @@ const refreshToken = function(next) {
         request('https', options, body, function(error, response){
             if(error) {
                 let err = new Error(error);
-                winston.error(err);
+                winston.warn(err);
+
+                /* If there's something wrong with the request, skip the user */
+                err.stop = true;
                 next(err);
             } else {
                 winston.info("New access_token has been requested successfully.");
