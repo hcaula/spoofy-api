@@ -79,7 +79,9 @@ const getRelations = function (req, res, next) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            res.send(users);
+            async.eachSeries(users, (user, next) => {
+                
+            })
         }
     });
 }
