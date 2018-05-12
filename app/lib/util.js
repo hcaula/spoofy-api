@@ -3,6 +3,10 @@ const async = require('async');
 const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
 
+/*
+ * Exportable functions
+*/
+
 exports.calculateExpirationDate = function (expires_in) {
     const now = Date.now();
     return new Date(now + (expires_in * 1000));
@@ -125,4 +129,28 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
             callback(null, tracks);
         }
     });
+}
+
+exports.generateRelationByGenre = function (genres_1, genres_2) {
+    const normalized_1 = normalizeGenres(genres_1);
+    const normalized_2 = normalizeGenres(genres_2);
+
+    console.log(genres_1);
+    console.log(normalized_1);
+}
+
+/*
+ * Auxiliar functions
+*/
+const normalizeGenres = function (array) {
+    let max = -Infinity, min = Infinity;
+    array.forEach(el => {
+        if (el.times_listened > max) max = el.times_listened;
+        if (el.times_listened < min) min = el.times_listened;
+    });
+
+    const diff = max - min;
+    const ret = array.map(el => ((el.times_listened - min) / diff) * 100);
+
+    return ret;
 }

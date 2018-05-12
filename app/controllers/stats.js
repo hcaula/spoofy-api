@@ -7,7 +7,11 @@ const User = require('mongoose').model('User');
 
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const { organizeGenres, getUserPlays, getPlayTracks } = require('../lib/util');
+const { 
+    organizeGenres, 
+    getUserPlays, 
+    getPlayTracks,
+    generateRelationByGenre } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
@@ -83,11 +87,11 @@ const getRelations = function (req, res, next) {
                 getUserPlays(user, {}, (error, plays) => {
                     if (error) next(error);
                     else {
-                        getPlayTracks(plays, {}, (error, user_tracks) => {
+                        getPlayTracks(plays, {}, (error, tracks) => {
                             if (error) next(error);
                             else {
-                                ts = user_tracks;
-                                next();
+                                const u2genres = organizeGenres(tracks);
+                                generateRelationByGenre(user_genres, u2genres);
                             }
                         });
                     }
