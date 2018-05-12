@@ -131,12 +131,12 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
     });
 }
 
-exports.generateRelationByGenre = function (genres_1, genres_2) {
+exports.distanceByGenre = function (genres_1, genres_2) {
     const limit = 20;
 
     const normalized_1 = normalizeGenres(genres_1);
     const normalized_2 = normalizeGenres(genres_2);
-    let relation = 0;
+    let distance = 0;
 
     normalized_1.forEach((genre, i) => {
         if (i < limit) {
@@ -145,18 +145,18 @@ exports.generateRelationByGenre = function (genres_1, genres_2) {
                 console.log(`Appears: ${genre.genre}, ${normalized_2[found_u2].genre}`);
                 console.log(`Diff: ${genre.normalized - normalized_2[found_u2].normalized}`);
                 console.log('');
-                relation += Math.abs(genre.normalized - normalized_2[found_u2].normalized);
+                distance += Math.abs(genre.normalized - normalized_2[found_u2].normalized);
             }
             else {
                 console.log(`Doesn't appear: ${genre.genre}, ${genre.normalized}`);
                 console.log('');
-                relation += genre.normalized;
+                distance += genre.normalized;
             }
         }
 
     });
 
-    return relation;
+    return distance;
 }
 
 /*
