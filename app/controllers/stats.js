@@ -1,4 +1,5 @@
 
+const winston = require('winston');
 const async = require('async');
 const simple_statistics = require('simple-statistics');
 
@@ -78,6 +79,7 @@ const getRelations = function (req, res, next) {
     const user_tracks = req.tracks;
     const user_genres = organizeGenres(user_tracks);
 
+    let ret = {user: req.user.display_name, relations: []}
     User.find({ _id: { $ne: req.user._id } }, (error, users) => {
         if (error) {
             winston.error(error.stack);
@@ -91,7 +93,15 @@ const getRelations = function (req, res, next) {
                             if (error) next(error);
                             else {
                                 const u2genres = organizeGenres(tracks);
-                                generateRelationByGenre(user_genres, u2genres);
+                                const relation = generateRelationByGenre(user_genres, u2genres);
+
+                                ret.relations.push({
+                                    user: user.display_name,
+                                    relation: relation
+                                });
+
+                                winston.info(`Relation between ${req.user.display_name} and ${user.display_name}: ${relation}`);
+                                next();
                             }
                         });
                     }
@@ -101,7 +111,10 @@ const getRelations = function (req, res, next) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    res.send(ts);
+                    ret.relations = ret.relations.sort((a, b) => a.relation - b.relation);
+                    res.status(200).json({
+                        relations: ret
+                    });
                 }
             });
         }

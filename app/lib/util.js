@@ -132,25 +132,50 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
 }
 
 exports.generateRelationByGenre = function (genres_1, genres_2) {
+    const limit = 20;
+
     const normalized_1 = normalizeGenres(genres_1);
     const normalized_2 = normalizeGenres(genres_2);
+    let relation = 0;
 
-    console.log(genres_1);
-    console.log(normalized_1);
+    normalized_1.forEach((genre, i) => {
+        if (i < limit) {
+            const found_u2 = exports.searchByField(genre.genre, 'genre', normalized_2);
+            if (found_u2 > -1) {
+                console.log(`Appears: ${genre.genre}, ${normalized_2[found_u2].genre}`);
+                console.log(`Diff: ${genre.normalized - normalized_2[found_u2].normalized}`);
+                console.log('');
+                relation += Math.abs(genre.normalized - normalized_2[found_u2].normalized);
+            }
+            else {
+                console.log(`Doesn't appear: ${genre.genre}, ${genre.normalized}`);
+                console.log('');
+                relation += genre.normalized;
+            }
+        }
+
+    });
+
+    return relation;
 }
 
 /*
  * Auxiliar functions
 */
-const normalizeGenres = function (array) {
+const normalizeGenres = function (genres) {
     let max = -Infinity, min = Infinity;
-    array.forEach(el => {
-        if (el.times_listened > max) max = el.times_listened;
-        if (el.times_listened < min) min = el.times_listened;
+    genres.forEach(genre => {
+        if (genre.times_listened > max) max = genre.times_listened;
+        if (genre.times_listened < min) min = genre.times_listened;
     });
 
     const diff = max - min;
-    const ret = array.map(el => ((el.times_listened - min) / diff) * 100);
+    const ret = genres.map(genre => {
+        return {
+            genre: genre.genre,
+            normalized: ((genre.times_listened - min) / diff)
+        }
+    });
 
     return ret;
 }
