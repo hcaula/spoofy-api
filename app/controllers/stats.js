@@ -7,7 +7,7 @@ const User = require('mongoose').model('User');
 
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const { organizeGenres } = require('../lib/util');
+const { organizeGenres, getUserPlays, getPlayTracks } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
@@ -71,8 +71,8 @@ const getFeaturesStatistics = function (req, res) {
 }
 
 const getRelations = function (req, res, next) {
-    const tracks = req.tracks;
-    const user_genres = organizeGenres(tracks);
+    const user_tracks = req.tracks;
+    const user_genres = organizeGenres(user_tracks);
 
     User.find({ _id: { $ne: req.user._id } }, (error, users) => {
         if (error) {
@@ -80,8 +80,26 @@ const getRelations = function (req, res, next) {
             res.status(500).json(errors[500]);
         } else {
             async.eachSeries(users, (user, next) => {
-                
-            })
+                getUserPlays(user, {}, (error, plays) => {
+                    if (error) next(error);
+                    else {
+                        getPlayTracks(plays, {}, (error, user_tracks) => {
+                            if (error) next(error);
+                            else {
+                                ts = user_tracks;
+                                next();
+                            }
+                        });
+                    }
+                });
+            }, error => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    res.send(ts);
+                }
+            });
         }
     });
 }

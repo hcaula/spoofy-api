@@ -105,7 +105,7 @@ exports.getUserPlays = function (user, options, callback) {
     }
 }
 
-exports.getUserTracks = function (plays, sort_by, callback) {
+exports.getPlayTracks = function (plays, sort_by, callback) {
     const group = plays.map(p => { return { track_id: p.track, played_at: p.played_at } });
 
     let tracks = [];

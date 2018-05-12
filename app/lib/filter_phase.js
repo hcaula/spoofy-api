@@ -5,7 +5,7 @@ const Track = require('mongoose').model('Track');
 const Play = require('mongoose').model('Play');
 
 const errors = require('../lib/errors');
-const { getUserPlays, getUserTracks } = require('../lib/util');
+const { getUserPlays, getPlayTracks } = require('../lib/util');
 
 const getLoggedUserPlays = function (req, res, next) {
     const user = req.user;
@@ -25,7 +25,7 @@ const getLoggedUserTracks = function (req, res, next) {
     const plays = req.plays;
     const sort_by = (req.query.sort_by || "hour");
 
-    getUserTracks(plays, sort_by, (error, tracks) => {
+    getPlayTracks(plays, sort_by, (error, tracks) => {
         if(error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
