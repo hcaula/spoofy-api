@@ -1,16 +1,19 @@
-const Play = require('mongoose').model('Play');
+const async = require('async');
 
-exports.calculateExpirationDate = function(expires_in){
+const Play = require('mongoose').model('Play');
+const Track = require('mongoose').model('Track');
+
+exports.calculateExpirationDate = function (expires_in) {
     const now = Date.now();
-    return new Date(now + (expires_in*1000));
+    return new Date(now + (expires_in * 1000));
 }
 
-exports.calculateNextWeek = function() {
+exports.calculateNextWeek = function () {
     const today = new Date();
     const nextweek = new Date(
         today.getFullYear(),
         today.getMonth(),
-        today.getDate()+7,
+        today.getDate() + 7,
         today.getHours(),
         today.getMinutes(),
         today.getSeconds(),
@@ -19,10 +22,10 @@ exports.calculateNextWeek = function() {
     return nextweek;
 }
 
-exports.searchByField = function(value, field, array) {
+exports.searchByField = function (value, field, array) {
     let index = -1;
     array.forEach((el, i) => {
-        if(el[field] == value) {
+        if (el[field] == value) {
             index = i;
             return;
         }
@@ -30,11 +33,11 @@ exports.searchByField = function(value, field, array) {
     return index;
 }
 
-exports.countElement = function(elem, array) {
+exports.countElement = function (elem, array) {
     return array.filter(x => (x == elem)).length;
 }
 
-exports.organizeGenres = function(tracks) {
+exports.organizeGenres = function (tracks) {
     let genres = [], counted_genres = [], ret_genres = [];
 
     tracks.forEach(track => {
@@ -56,7 +59,7 @@ exports.organizeGenres = function(tracks) {
     return sorted;
 }
 
-exports.getPlays = function(user, options, callback) {
+exports.getUserPlays = function (user, options, callback) {
     let begin_hour = options.begin_hour;
     let begin_day = options.begin_day;
     if (begin_hour) begin_hour = parseInt(begin_hour);
@@ -100,4 +103,26 @@ exports.getPlays = function(user, options, callback) {
             else callback(null, plays);
         });
     }
+}
+
+exports.getUserTracks = function (plays, sort_by, callback) {
+    const group = plays.map(p => { return { track_id: p.track, played_at: p.played_at } });
+
+    let tracks = [];
+    async.each(group, (elem, next) => {
+        Track.findById(elem.track_id, (error, track) => {
+            if (error) next(error);
+            else {
+                track.played_at = elem.played_at;
+                tracks.push(track);
+                next();
+            }
+        });
+    }, (error) => {
+        if (error) callback(error);
+        else {
+            tracks.sort((a, b) => a.played_at[sort_by] - b.played_at[sort_by]);
+            callback(null, tracks);
+        }
+    });
 }
