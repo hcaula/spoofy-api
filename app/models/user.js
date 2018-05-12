@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const calculateExpirationDate = require('../lib/util').calculateExpirationDate;
+const { calculateExpirationDate } = require('../lib/util');
 
 module.exports = function() {
-    let UserSchema = mongoose.Schema({
+    const UserSchema = mongoose.Schema({
         _id: String,
         display_name: String,
         email: String,
@@ -25,8 +25,8 @@ module.exports = function() {
         role: {type: String, default: "user"}
     });
 
-    /* Calculating the expiration_date previous the save function */
-    UserSchema.pre('save', function(next){
+    /* Calculating the expiration_date previous of the save function */
+    UserSchema.pre('save', next => {
         this.token.expiration_date = calculateExpirationDate(this.token.expires_in);
         next();
     });

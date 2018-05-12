@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 module.exports = function() {
-    let TrackSchema = mongoose.Schema({
+    const TrackSchema = mongoose.Schema({
         _id: String,
         name: String,
         artists: [

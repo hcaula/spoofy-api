@@ -1,5 +1,5 @@
 {
-    "hostname": "rocky-brook-40396.herokuapp.com/",
+    "hostname": "spoofyapi.herokuapp.com/",
     "protocol": "https",
     "mongodb": {
         "uri": "mongodb://localhost/spoofy"

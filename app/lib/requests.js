@@ -2,7 +2,7 @@ const querystring = require('querystring');
 
 exports.request = function() {
     const protocol = require(arguments[0]);
-    let options = arguments[1];
+    const options = arguments[1];
     let bodyStr, next;
 
     if(typeof arguments[2] == 'function') next = arguments[2];
@@ -13,16 +13,16 @@ exports.request = function() {
         options.headers['Content-Length'] = bodyStr.length;
     }
 
-    let req = protocol.request(options, function(res){
+    const req = protocol.request(options, res => {
         let _chunk = '';
 
-        res.on('data', function(chunk){
+        res.on('data', chunk => {
             _chunk += chunk;
         });
 
-        res.on('end', function(){
+        res.on('end', () => {
             try {
-                let response = JSON.parse(_chunk);
+                const response = JSON.parse(_chunk);
                 if(response.error) {
                     if(response.error.message) next(new Error(response.error.message));
                     else next(_chunk);
@@ -33,12 +33,12 @@ exports.request = function() {
             }
         });
 
-        res.on('error', function(error){
+        res.on('error', error => {
             next(error);
         });
     });
 
-    req.on('error', function(error){
+    req.on('error', error => {
         next(error);
     });
 

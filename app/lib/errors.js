@@ -7,8 +7,8 @@ module.exports = {
         "type": "not_found",
         "message": "We looked very hard, but we couldn't find the resource you're looking for."
     },
-    "400": function(param) {
-        if(param) {
+    "400": function (param) {
+        if (param) {
             return {
                 "type": "missing_params",
                 "message": `Field "${param}" was not found on your request.`
@@ -20,12 +20,12 @@ module.exports = {
             }
         }
     },
-    "401": function(type) {
-        let error = {type: type}
-        if(type == 'no_token_provided') error.error = "Aren't you missing something on your request?";
+    "401": function (type) {
+        const error = { type: type };
+        if (type == 'no_token_provided') error.error = "Aren't you missing something on your request?";
         else if (type == 'session_expired') error.error = "You're too slow. The access token you've sent has expired.";
         else error.error = "Are you sure you have the right permissions to request what you're requesting?";
-    
+
         return error;
     }
 }

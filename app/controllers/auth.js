@@ -3,49 +3,47 @@
 */
 const express = require('express');
 const app = express();
-const async = require('async');
 const config = require('../../config/config');
-const base64 = require('base-64');
+const { encode } = require('base-64');
 const winston = require('winston');
 
 const User = require('mongoose').model('User');
 const Session = require('mongoose').model('Session');
 
 const errors = require('../lib/errors');
-const util = require('../lib/util');
-const request = require('../lib/requests').request;
-const initJob = require('../lib/jobs').initJob;
+const { calculateNextWeek } = require('../lib/util');
+const { request } = require('../lib/requests');
 
-module.exports = function(app) {
+module.exports = function (app) {
     app.get('/api/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
 }
 
-let requestAccessToken = function(req, res, next) {
-    if(req.query.error) {
+const requestAccessToken = function (req, res, next) {
+    if (req.query.error) {
         winston.error(req.query.error);
         res.status(500).json(errors[500]);
     } else {
-        let code = req.query.code;
-        let client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
-        let client_secret = (process.env.SPOTIFY_CLIENTSECRET|| config.spotify.client_secret);
-        let encoded = base64.encode(`${client_id}:${client_secret}`);
-        let redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
+        const code = req.query.code;
+        const client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
+        const client_secret = (process.env.SPOTIFY_CLIENTSECRET || config.spotify.client_secret);
+        const encoded = encode(`${client_id}:${client_secret}`);
+        const redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
 
-        let body = {
-            'grant_type':'authorization_code',
+        const body = {
+            'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': redirect_uri
         }
 
-        let options = {
+        const options = {
             host: 'accounts.spotify.com',
             path: '/api/token',
             method: 'POST',
-            headers: {'Authorization': `Basic ${encoded}`}
+            headers: { 'Authorization': `Basic ${encoded}` }
         }
 
-        request('https', options, body, function(error, response){
-            if(error) {
+        request('https', options, body, (error, response) => {
+            if (error) {
                 winston.error(new Error(error).stack);
                 res.status(500).json(errors[500]);
             } else {
@@ -56,17 +54,17 @@ let requestAccessToken = function(req, res, next) {
     }
 }
 
-let requestUserData = function(req, res, next) {
-    let access_token = req.token.access_token;
-    let options = {
+const requestUserData = function (req, res, next) {
+    const access_token = req.token.access_token;
+    const options = {
         host: 'api.spotify.com',
         path: '/v1/me',
         method: 'GET',
-        headers: {'Authorization': `Bearer ${access_token}`}
+        headers: { 'Authorization': `Bearer ${access_token}` }
     }
 
-    request('https', options, function(error, response){
-        if(error) {
+    request('https', options, (error, response) => {
+        if (error) {
             winston.error(new Error(error).stack);
             res.status(500).json(errors[500]);
         } else {
@@ -84,24 +82,24 @@ let requestUserData = function(req, res, next) {
     });
 }
 
-let loginOrRegister = function(req, res, next) {
-    User.findById(req.user._id, function(error, user){
-        if(error) {
+const loginOrRegister = function (req, res, next) {
+    User.findById(req.user._id, (error, user) => {
+        if (error) {
             winston.error(new Error(error).stack);
             res.status(500).json(errors[500]);
         } else if (user) {
             req.user = user;
             user.token = req.token;
-            user.save(function(error){
-                if(error) {
+            user.save(error => {
+                if (error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else next();
             });
         } else {
             user = new User(req.user);
-            user.save(function(error, u){
-                if(error) {
+            user.save((error, u) => {
+                if (error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
@@ -114,15 +112,15 @@ let loginOrRegister = function(req, res, next) {
     });
 }
 
-let startSession = function(req, res, next) {
-    let user = req.user;
-    let token = req.token;
-    let next_week = util.calculateNextWeek();
+const startSession = function (req, res, next) {
+    const user = req.user;
+    const token = req.token;
+    const next_week = calculateNextWeek();
 
     let current_session;
 
-    Session.findOne({user: user._id}, function(error, session){
-        if(error) {
+    Session.findOne({ user: user._id }, (error, session) => {
+        if (error) {
             winston.error(error.stack);
             res.status(500).send(errors[500]);
         } else if (!session) {
@@ -137,11 +135,11 @@ let startSession = function(req, res, next) {
             current_session.expiration_date = next_week;
         }
 
-        current_session.save(function(error){
-            if(error) {
+        current_session.save(error => {
+            if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
-            } else res.redirect((process.env.CLIENT_URL || config.client.url)+'?token='+token.access_token);
+            } else res.redirect((process.env.CLIENT_URL || config.client.url) + '?token=' + token.access_token);
         });
     });
 }

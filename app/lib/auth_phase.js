@@ -1,45 +1,44 @@
 const winston = require('winston');
-const config = require('../../config/config');
 
 const Session = require('mongoose').model('Session');
 const User = require('mongoose').model('User');
 
 const errors = require('./errors');
-const util = require('./util');
+const { calculateNextWeek } = require('./util');
 
-let getSession = function(req, res, next) {
-    let access_token = req.headers.access_token;
+const getSession = function (req, res, next) {
+    const access_token = req.headers.access_token;
     let caller = req.path.slice(1);
     caller = caller.slice(0, caller.indexOf('/'));
 
-    if(!access_token) {
-        if(caller == 'api') {
+    if (!access_token) {
+        if (caller == 'api') {
             res.set('WWW-Authenticate', 'access_token');
             res.status(401).json(errors[401]('no_token_provided'));
         } else next();
     } else {
-        Session.findOne({"token": access_token}, function(error, session){
-            if(error) {
+        Session.findOne({ "token": access_token }, (error, session) => {
+            if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
-            } else if(!session) {
-                if(caller == 'api'){
+            } else if (!session) {
+                if (caller == 'api') {
                     res.set('WWW-Authenticate', 'access_token');
                     res.status(401).json(errors[401]('permission_denied'));
                 } else next();
             } else {
-                let expiration_date = session.expiration_date;
-                let today = new Date();
-                if(today > expiration_date) {
-                    if(caller == 'api'){
+                const expiration_date = session.expiration_date;
+                const today = new Date();
+                if (today > expiration_date) {
+                    if (caller == 'api') {
                         res.set('WWW-Authenticate', 'access_token');
                         res.status(401).json(errors[401]('session_expired'));
                     } else next();
                 } else {
-                    let next_week = util.calculateNextWeek();
+                    const next_week = calculateNextWeek();
                     session.expiration_date = next_week;
-                    session.save(function(error){
-                        if(error) {
+                    session.save(error => {
+                        if (error) {
                             winston.error(error.stack);
                             res.status(500).json(errors[500]);
                         } else {
@@ -53,14 +52,14 @@ let getSession = function(req, res, next) {
     }
 };
 
-let getUser = function(req, res, next) {
-    if(!req.user) next();
+const getUser = function (req, res, next) {
+    if (!req.user) next();
     else {
-        User.findById(req.user, function(error, user){
-            if(error) {
+        User.findById(req.user, (error, user) => {
+            if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
-            } else if (!user){
+            } else if (!user) {
                 res.status(400).json({
                     error: "user_not_found",
                     message: "No user could be retrieved from this token."

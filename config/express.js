@@ -5,21 +5,21 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
-exports.module = function() {
-  let app = express();
+exports.module = function () {
+    const app = express();
 
-  app.use(bodyParser.urlencoded({extended: true}));
-  app.use(bodyParser.json());
-  app.use(cors());
+    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json());
+    app.use(cors());
 
-  /* Sets the port to the one specfied on the config file */
-  let port = (process.env.PORT || config.port)
-  app.set('port', port);
+    /* Sets the port to the one specfied on the config file */
+    const port = (process.env.PORT || config.port)
+    app.set('port', port);
 
-  /* Allows for better routing - no need to keep adding new routers */
-  load('models', {cwd:'app'})
-    .then('controllers')
-    .into(app);
+    /* Allows for better routing - no need to keep adding new routers */
+    load('models', { cwd: 'app' })
+        .then('controllers')
+        .into(app);
 
-  return app;
+    return app;
 };

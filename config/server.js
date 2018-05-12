@@ -5,9 +5,10 @@ const config = require('./config');
 
 const protocol = require("http");
 
-exports.initServer = function(next) {
-  let server = app.listen(process.env.PORT || config.port, function () {
-    let port = server.address().port;
-    winston.info(`Express Server listening on port ${app.get('port')}`);
-  });
+exports.initServer = function (next) {
+    const server = app.listen(process.env.PORT || config.port, () => {
+        const port = server.address().port;
+        winston.info('Express Server configured successfully.');
+        next();
+    });
 }

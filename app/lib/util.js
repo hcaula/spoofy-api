@@ -1,11 +1,11 @@
 exports.calculateExpirationDate = function(expires_in){
-    let now = Date.now();
+    const now = Date.now();
     return new Date(now + (expires_in*1000));
 }
 
 exports.calculateNextWeek = function() {
-    let today = new Date();
-    let nextweek = new Date(
+    const today = new Date();
+    const nextweek = new Date(
         today.getFullYear(),
         today.getMonth(),
         today.getDate()+7,
@@ -19,7 +19,7 @@ exports.calculateNextWeek = function() {
 
 exports.searchByField = function(value, field, array) {
     let index = -1;
-    array.forEach(function(el, i){
+    array.forEach((el, i) => {
         if(el[field] == value) {
             index = i;
             return;
