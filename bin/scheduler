@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-process.env.ENV_NODE = "production";
+/* If no node env is passed, production is used */
+process.env.NODE_ENV = (process.env.NODE_ENV || "production");
 
-let start = Date.now();
+const start = Date.now();
 
 const winston = require('winston');
 
@@ -10,29 +11,29 @@ require('../app/models/user')();
 require('../app/models/track')();
 require('../app/models/play')();
 
-const configWinston = require('../config/winston').configWinston;
-const initMongoose = require('../config/database').initMongoose;
-const initJob = require('../app/lib/jobs').initJob;
+const { configWinston } = require('../config/winston');
+const { initMongoose } = require('../config/database');
+const { initJob } = require('../app/lib/jobs');
 
 const User = require('mongoose').model('User');
 
-configWinston(function(){
+configWinston(() => {
     winston.info("Starting scheduled job.");
 
-    initMongoose(function(error){
+    initMongoose(error => {
         if(error) winston.error(error.stack);
         else {
-            User.find({role: "user"}, function(error, users){
+            User.find({role: "user"}, (error, users) => {
                 if(error) {
                     winston.error(error.stack);
                     process.exit(0);
                 } else {
-                    initJob(users, function(error){
+                    initJob(users, (error) => {
                         if(error) {
                             winston.error(error.stack);
                             process.exit(0);
                         } else {
-                            let elapsed = (Date.now() - start)/1000;
+                            const elapsed = (Date.now() - start)/1000;
                             winston.info(`Scheduler job executed successfully in approximately ${elapsed} seconds.`);
                             winston.info('Exiting scheduler execution.');
                             process.exit(0);
