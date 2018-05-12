@@ -26,7 +26,7 @@ module.exports = function() {
     });
 
     /* Calculating the expiration_date previous of the save function */
-    UserSchema.pre('save', next => {
+    UserSchema.pre('save', function(next) {
         this.token.expiration_date = calculateExpirationDate(this.token.expires_in);
         next();
     });

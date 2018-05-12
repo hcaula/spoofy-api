@@ -13,6 +13,7 @@ const Session = require('mongoose').model('Session');
 const errors = require('../lib/errors');
 const { calculateNextWeek } = require('../lib/util');
 const { request } = require('../lib/requests');
+const { initJob } = require('../lib/jobs');
 
 module.exports = function (app) {
     app.get('/api/v1/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
@@ -105,7 +106,13 @@ const loginOrRegister = function (req, res, next) {
                 } else {
                     req.user = u;
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
-                    next();
+                    winston.info('Starting job for new user.');
+                    initJob([u], error => {
+                        if(error) {
+                            winston.error(error.stack);
+                            res.status(500).json(errors[500]);
+                        } else next();
+                    });
                 }
             });
         }
