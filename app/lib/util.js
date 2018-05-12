@@ -31,3 +31,25 @@ exports.searchByField = function(value, field, array) {
 exports.countElement = function(elem, array) {
     return array.filter(x => (x == elem)).length;
 }
+
+exports.organizeGenres = function(tracks) {
+    let genres = [], counted_genres = [], ret_genres = [];
+
+    tracks.forEach(track => {
+        track.genres.forEach(g => genres.push(g));
+    });
+
+    genres.forEach(g => {
+        if (!counted_genres.includes(g)) {
+            counted_genres.push(g);
+            ret_genres.push({
+                genre: g,
+                times_listened: exports.countElement(g, genres)
+            });
+        }
+    });
+
+    const sorted = ret_genres.sort((a, b) => b.times_listened - a.times_listened)
+
+    return sorted;
+}

@@ -3,16 +3,19 @@ const async = require('async');
 const simple_statistics = require('simple-statistics');
 
 const Track = require('mongoose').model('Track');
+const User = require('mongoose').model('User');
 
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const { countElement } = require('../lib/util');
+const { organizeGenres } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
     app.get('/api/v1/stats/genres/', auth_phase, filter_phase, getGenres);
     app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeatures);
     app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
+
+    app.get('/api/v1/stats/relations/', auth_phase, filter_phase, getRelations);
 }
 
 const getTracks = function (req, res) {
@@ -21,25 +24,9 @@ const getTracks = function (req, res) {
 
 const getGenres = function (req, res) {
     const tracks = req.tracks;
-    let genres = [], counted_genres = [], ret_genres = [];
+    const genres = organizeGenres(tracks);
 
-    tracks.forEach(track => {
-        track.genres.forEach(g => genres.push(g));
-    });
-
-    genres.forEach(g => {
-        if (!counted_genres.includes(g)) {
-            counted_genres.push(g);
-            ret_genres.push({
-                genre: g,
-                times_listened: countElement(g, genres)
-            });
-        }
-    });
-
-    const sorted = ret_genres.sort((a, b) => b.times_listened - a.times_listened)
-
-    res.status(200).json({ genres: sorted });
+    res.status(200).json({ genres: genres });
 }
 
 const getFeatures = function (req, res) {
@@ -81,4 +68,18 @@ const getFeaturesStatistics = function (req, res) {
     }
 
     res.status(200).json({ statistics: stats })
+}
+
+const getRelations = function (req, res, next) {
+    const tracks = req.tracks;
+    const user_genres = organizeGenres(tracks);
+
+    User.find({ _id: { $ne: req.user._id } }, (error, users) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+            res.send(users);
+        }
+    });
 }
