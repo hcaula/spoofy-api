@@ -143,6 +143,8 @@ exports.distanceByGenre = function (genres_1, genres_2) {
             const found_u2 = exports.searchByField(genre.genre, 'genre', normalized_2);
             if (found_u2 > -1) {
                 console.log(`Appears: ${genre.genre}, ${normalized_2[found_u2].genre}`);
+                console.log(`From me: ${genre.normalized}`);
+                console.log(`From foe: ${normalized_2[found_u2].normalized}`);
                 console.log(`Diff: ${genre.normalized - normalized_2[found_u2].normalized}`);
                 console.log('');
                 distance += Math.abs(genre.normalized - normalized_2[found_u2].normalized);
