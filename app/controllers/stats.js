@@ -6,11 +6,12 @@ const simple_statistics = require('simple-statistics');
 const Track = require('mongoose').model('Track');
 const User = require('mongoose').model('User');
 
+const errors = require('../lib/errors');
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const { 
-    organizeGenres, 
-    getUserPlays, 
+const {
+    organizeGenres,
+    getUserPlays,
     getPlayTracks,
     distanceByGenre } = require('../lib/util');
 
@@ -93,16 +94,21 @@ const getDistances = function (req, res, next) {
                         getPlayTracks(plays, {}, (error, tracks) => {
                             if (error) next(error);
                             else {
-                                const u2genres = organizeGenres(tracks);
-                                const distance = distanceByGenre(user_genres, u2genres);
+                                try {
+                                    const u2genres = organizeGenres(tracks);
+                                    const distance = distanceByGenre(user_genres, u2genres);
 
-                                distances.push({
-                                    user: user.display_name,
-                                    distance: distance
-                                });
+                                    distances.push({
+                                        user: user.display_name,
+                                        distance: distance
+                                    });
 
-                                winston.info(`Distance between ${req.user.display_name} and ${user.display_name}: ${distance}`);
-                                next();
+                                    winston.info(`Distance between ${req.user.display_name} and ${user.display_name}: ${distance}`);
+                                    next();
+                                }
+                                catch (e) {
+                                    next(e);
+                                }
                             }
                         });
                     }
