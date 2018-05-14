@@ -88,24 +88,30 @@ const getLoggedRelations = function (req, res, next) {
                 let _id = ((relation.user_1 == req.user._id ? relation.user_2 : relation.user_1));
 
                 User.findById(_id, (error, user) => {
-                    if(error) next(error);
+                    let ret_user = {
+                        _id: user._id,
+                        display_name: user.display_name,
+                        href: user.href,
+                        uri: user.uri,
+                        images: user.images
+                    }
+                    if (error) next(error);
                     else {
-
                         rel = {
-                            user: user.display_name,
-                            afinity: relation.afinity,
+                            user: ret_user,
+                            affinity: relation.affinity,
                             genres: relation.genres
                         }
                         ret.push(rel);
                         next();
                     }
-                });
+                }).select('display_name href images _id uri');;
             }, error => {
                 if (error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    let sorted = ret.sort((a,b) => b.afinity - a.afinity);
+                    let sorted = ret.sort((a, b) => b.affinity - a.affinity);
                     res.status(200).json({
                         relations: sorted
                     });
@@ -122,9 +128,26 @@ const getRelations = function (req, res, next) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            res.status(200).json({
-                relations: relations
-            });
+            User.find({}, (error, users) => {
+                let ret_users = users.map(u => {
+                    return {
+                        _id: u._id,
+                        display_name: u.display_name,
+                        href: u.href,
+                        uri: u.uri,
+                        images: u.images
+                    }
+                });
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    res.status(200).json({
+                        users: ret_users,
+                        relations: relations
+                    });
+                }
+            })
         }
     });
 }

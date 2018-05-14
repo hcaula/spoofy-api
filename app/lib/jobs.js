@@ -474,7 +474,7 @@ const calculateRelations = function (next) {
             relations.push({
                 user_1: pair[0],
                 user_2: pair[1],
-                afinity: relation.afinity,
+                affinity: relation.affinity,
                 genres: relation.sharedGenres
             });
         }
@@ -496,7 +496,7 @@ const updateRelations = function (next) {
             if (error) next(error);
             else if (!rel) rel = new Relation(relation);
             else {
-                rel.afinity = relation.afinity;
+                rel.affinity = relation.affinity;
                 rel.genres = relation.genres;
             }
 

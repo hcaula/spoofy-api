@@ -154,7 +154,7 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
 
 exports.relationByGenre = function (genres_u1, genres_u2) {
     const limit = 50;
-    let afinity = 0;
+    let affinity = 0;
     let sharedGenres = [];
 
     const cut_u1 = genres_u1.slice(0, limit);
@@ -191,17 +191,17 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
                 name: genre_u1.genre,
                 times_listened_user_1: genre_u1.times_listened,
                 times_listened_user_2: genre_u2.times_listened,
-                normalized_user_1: genre_u1.normalized,
-                normalized_user_2: genre_u2.normalized,
+                interest_user_1: genre_u1.normalized,
+                interest_user_2: genre_u2.normalized,
                 common_interest: common_interest
             });
         }
-        afinity += common_interest;
+        affinity += common_interest;
     }
 
     sharedGenres = sharedGenres.sort((a, b) => b.common_interest - a.common_interest).slice(0, 10);
     return {
-        afinity: afinity,
+        affinity: affinity,
         sharedGenres: sharedGenres
     }
 }
