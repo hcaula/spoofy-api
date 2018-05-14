@@ -76,7 +76,7 @@ const getFeaturesStatistics = function (req, res) {
     res.status(200).json({ statistics: stats })
 }
 
-/* Calculates the distance between users based on their listened genres */
+/* Calculates the relation between logged user and other users based on listened genres */
 const getRelations = function (req, res, next) {
     const user_tracks = req.tracks;
     const user_genres = organizeGenres(user_tracks);
