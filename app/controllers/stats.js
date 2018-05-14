@@ -105,7 +105,7 @@ const getLoggedRelations = function (req, res, next) {
                         ret.push(rel);
                         next();
                     }
-                }).select('display_name href images _id uri');;
+                });
             }, error => {
                 if (error) {
                     winston.error(error.stack);
