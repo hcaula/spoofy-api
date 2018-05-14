@@ -131,34 +131,86 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
     });
 }
 
-exports.distanceByGenre = function (genres_1, genres_2) {
-    const limit = 20;
+exports.relationByGenre = function (genres_u1, genres_u2) {
+    const limit = 50;
+    let usersRelation = 0;
+    let sharedGenres = [];
 
-    const normalized_1 = normalizeGenres(genres_1);
-    const normalized_2 = normalizeGenres(genres_2);
-    let distance = 0;
+    const normalized_u1 = normalize(genres_u1.map(g => g.times_listened));
+    const normalized_u2 = normalize(genres_u2.map(g => g.times_listened));
 
-    normalized_1.forEach((genre, i) => {
+    genres_u1.map((e, i) => genres_u1[i].normalized = normalized_u1[i]);
+    genres_u2.map((e, i) => genres_u2[i].normalized = normalized_u2[i]);
+
+    genres_u1.forEach((genre_u1, i) => {
         if (i < limit) {
-            const found_u2 = exports.searchByField(genre.genre, 'genre', normalized_2);
-            if (found_u2 > -1) {
-                console.log(`Appears: ${genre.genre}, ${normalized_2[found_u2].genre}`);
-                console.log(`From me: ${genre.normalized}`);
-                console.log(`From foe: ${normalized_2[found_u2].normalized}`);
-                console.log(`Diff: ${genre.normalized - normalized_2[found_u2].normalized}`);
-                console.log('');
-                distance += Math.abs(genre.normalized - normalized_2[found_u2].normalized);
-            }
-            else {
-                console.log(`Doesn't appear: ${genre.genre}, ${genre.normalized}`);
-                console.log('');
-                distance += genre.normalized;
-            }
-        }
+            const index = exports.searchByField(genre_u1.genre, 'genre', genres_u2);
+            let genreRelation = 0;
 
+            if (index > -1) {
+                genre_u2 = genres_u2[index];
+
+                let max = Math.max(genre_u1.normalized, genre_u2.normalized);
+
+                /* Avoid division by zero */
+                if (max == 0) max = 0.0001;
+                const min = Math.min(genre_u1.normalized, genre_u2.normalized);
+                const ratio = min/max;
+
+                genreRelation = (ratio + min) / 2;
+
+                sharedGenres.push({
+                    genre: genre_u1.genre,
+                    times_listened_u1: genre_u1.times_listened,
+                    times_listened_u2: genre_u2.times_listened,
+                    normalized_u1: genre_u1.normalized,
+                    normalized_u2: genre_u2.normalized,
+                    relation: genreRelation
+                });
+            }
+
+            usersRelation += genreRelation;
+            
+        } else return;
     });
 
-    return distance;
+    genres_u2.forEach((genre_u2, i) => {
+        if (i < limit) {
+            const index = exports.searchByField(genre_u2.genre, 'genre', genres_u1);
+            let genreRelation = 0;
+
+            if (index > -1 && exports.searchByField(genre_u2.genre, 'genre', sharedGenres) == -1) {
+                genre_u1 = genres_u1[index];
+
+                let max = Math.max(genre_u2.normalized, genre_u1.normalized);
+
+                /* Avoid division by zero */
+                if (max == 0) max = 0.0001;
+                const min = Math.min(genre_u2.normalized, genre_u1.normalized);
+                const ratio = min/max;
+
+                genreRelation = (ratio + min) / 2;
+
+                sharedGenres.push({
+                    genre: genre_u2.genre,
+                    times_listened_u1: genre_u1.times_listened,
+                    times_listened_u2: genre_u2.times_listened,
+                    normalized_u1: genre_u1.normalized,
+                    normalized_u2: genre_u2.normalized,
+                    relation: genreRelation
+                });
+            }
+
+            usersRelation += genreRelation;
+            
+        } else return;
+    });
+
+    sharedGenres = sharedGenres.sort((a, b) => b.relation - a.relation).slice(0, 10);
+    return {
+        afinity: usersRelation,
+        sharedGenres: sharedGenres
+    }
 }
 
 /*
@@ -175,9 +227,30 @@ const normalizeGenres = function (genres) {
     const ret = genres.map(genre => {
         return {
             genre: genre.genre,
+            times_listened: genre.times_listened,
             normalized: ((genre.times_listened - min) / diff)
         }
     });
 
     return ret;
+}
+
+const normalize = function (array) {
+    const { max, min } = getMinAndMax(array);
+    const diff = max - min;
+
+    let normalized = [];
+    array.forEach((el, i) => normalized[i] = ((el - min) / diff));
+
+    return normalized;
+}
+
+const getMinAndMax = function (array) {
+    let max = -Infinity, min = Infinity;
+    array.forEach(el => {
+        if (el > max) max = el;
+        if (el < min) min = el;
+    });
+
+    return { max: max, min: min }
 }

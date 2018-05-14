@@ -13,7 +13,7 @@ const {
     organizeGenres,
     getUserPlays,
     getPlayTracks,
-    distanceByGenre } = require('../lib/util');
+    relationByGenre } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
@@ -21,7 +21,7 @@ module.exports = function (app) {
     app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeatures);
     app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
 
-    app.get('/api/v1/stats/distances/', auth_phase, filter_phase, getDistances);
+    app.get('/api/v1/stats/relations/', auth_phase, filter_phase, getRelations);
 }
 
 const getTracks = function (req, res) {
@@ -77,11 +77,11 @@ const getFeaturesStatistics = function (req, res) {
 }
 
 /* Calculates the distance between users based on their listened genres */
-const getDistances = function (req, res, next) {
+const getRelations = function (req, res, next) {
     const user_tracks = req.tracks;
     const user_genres = organizeGenres(user_tracks);
 
-    let distances = [];
+    let relations = [];
     User.find({ _id: { $ne: req.user._id } }, (error, users) => {
         if (error) {
             winston.error(error.stack);
@@ -96,14 +96,13 @@ const getDistances = function (req, res, next) {
                             else {
                                 try {
                                     const u2genres = organizeGenres(tracks);
-                                    const distance = distanceByGenre(user_genres, u2genres);
+                                    const relation = relationByGenre(user_genres, u2genres);
 
-                                    distances.push({
+                                    relations.push({
                                         user: user.display_name,
-                                        distance: distance
+                                        relation: relation
                                     });
 
-                                    winston.info(`Distance between ${req.user.display_name} and ${user.display_name}: ${distance}`);
                                     next();
                                 }
                                 catch (e) {
@@ -118,9 +117,9 @@ const getDistances = function (req, res, next) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    distances = distances.sort((a, b) => a.distance - b.distance);
+                    relations = relations.sort((a, b) => b.relation.afinity - a.relation.afinity);
                     res.status(200).json({
-                        distances: distances
+                        relations: relations
                     });
                 }
             });
