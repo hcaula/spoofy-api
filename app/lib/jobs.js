@@ -8,8 +8,19 @@ const { request } = require('./requests');
 const User = require('mongoose').model('User');
 const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
+const Relation = require('mongoose').model('Relation');
+
+const {
+    organizeGenres,
+    getUserPlays,
+    getPlayTracks,
+    relationByGenre,
+    takePairs,
+    normalize,
+    searchByField } = require('../lib/util');
 
 let results;
+let updatedUsers;
 
 /* Request new token using the refresh token */
 const refreshToken = function (next) {
@@ -138,7 +149,7 @@ const shaveTracks = function (next) {
 
     const query = { user: userId, track: { $in: trackIds }, "played_at.fullDate": { $in: played_ats } };
 
-    Play.find(query, function (error, play) {
+    Play.find(query, (error, play) => {
         if (error) {
             let err = new Error(error);
             err.type = "db_error";
@@ -159,6 +170,8 @@ const shaveTracks = function (next) {
                     winston.warn("User has not listened to any new tracks.");
                     next({ stop: true });
                 } else {
+                    updatedUsers.push(user._id);
+
                     diff = shavedTracks.length;
                     winston.info(`${diff} new listened track${(diff > 1 ? 's' : '')} found.`);
 
@@ -367,9 +380,72 @@ const createPlays = function (next) {
     });
 }
 
+const getPairs = function(next) {
+    User.find({}, (error, users) => {
+        if (error) next(error);
+        else {
+            let pairs = takePairs(users.map(u => u._id));
+            pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
+
+            results.pairs = pairs;
+            next();
+        }
+    });
+}
+
+const renewRelations = function (callback) {
+    User.find({}, (error, users) => {
+        if (error) callback(error);
+        else {
+            const pairs = takePairs(users.map(u => u._id));
+
+            let normalizedUsers = [];
+            async.eachSeries(pairs, (pair, next) => {
+                /* If both users have not listened to new tracks, we don't need to update their relation */
+                if (!updatedUsers.includes(pair[0]) && !updatedUsers.includes(pair[1])) next();
+                else {
+                    let toBeNormalized = [];
+                    for (let i = 0; i < 2; i++) {
+                        const found = (searchByField(pair[i], 'user', normalizedUsers) > -1);
+                        if (!found) toBeNormalized.push(pair[i]);
+                    }
+
+                    async.eachSeries(toBeNormalized, (user, next) => {
+                        getUserPlays({ _id: user }, {}, (error, plays) => {
+                            if (error) next(error);
+                            else {
+                                getPlayTracks(plays, {}, (error, tracks) => {
+                                    if (error) next(error);
+                                    else {
+                                        const genres = organizeGenres(tracks);
+                                        normalizedUsers.push({
+                                            user: user,
+                                            normalized: normalize(genres.map(g => g.times_listened))
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }, error => {
+                        if(error) next(error);
+                        else {
+                            console.log(normalizedUsers);
+                            next();
+                        }
+                    });
+                }
+            }, error => {
+                if (error) callback(error);
+                else callback();
+            });
+        }
+    })
+}
+
 
 exports.initJob = function (users, next) {
     results = {};
+    updatedUsers = [];
 
     async.eachSeries(users, (user, next) => {
         winston.info(`Getting recently played tracks for user ${user.display_name}.`);
@@ -402,7 +478,15 @@ exports.initJob = function (users, next) {
             next(error);
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
-            next();
+            async.series([
+                getPairs
+            ], error => {
+                if(error) next(error);
+                else {
+                    console.log(results.pairs);
+                    next();
+                }
+            });
         }
     });
 }

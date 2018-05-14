@@ -7,9 +7,10 @@ const start = Date.now();
 
 const winston = require('winston');
 
-require('../app/models/user')();
 require('../app/models/track')();
 require('../app/models/play')();
+require('../app/models/relation')();
+require('../app/models/user')();
 
 const { configWinston } = require('../config/winston');
 const { initMongoose } = require('../config/database');

@@ -7,6 +7,27 @@ const Track = require('mongoose').model('Track');
  * Exportable functions
 */
 
+exports.takePairs = function (array) {
+    let pairs = [];
+    array.forEach(i => {
+        array.forEach(j => {
+            if(i != j) {
+                let found = false;
+                pairs.forEach(p => {
+                    if((p[0] == i && p[1] == j) || (p[1] == i && p[0] == j)) {
+                        found = true;
+                        return;
+                    }
+                });
+
+                if(!found) pairs.push([i, j]);
+            } else return;
+        });
+    });
+
+    return pairs;
+}
+
 exports.calculateExpirationDate = function (expires_in) {
     const now = Date.now();
     return new Date(now + (expires_in * 1000));
@@ -136,8 +157,8 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
     let afinity = 0;
     let sharedGenres = [];
 
-    const normalized_u1 = normalize(genres_u1.map(g => g.times_listened));
-    const normalized_u2 = normalize(genres_u2.map(g => g.times_listened));
+    const normalized_u1 = exports.normalize(genres_u1.map(g => g.times_listened));
+    const normalized_u2 = exports.normalize(genres_u2.map(g => g.times_listened));
 
     genres_u1.map((e, i) => genres_u1[i].normalized = normalized_u1[i]);
     genres_u2.map((e, i) => genres_u2[i].normalized = normalized_u2[i]);
@@ -149,7 +170,7 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
 
     for (let i = 0; i < concatened.length; i++) {
         let genre_u1, genre_u2, common_interest = 0;
-        
+
         if (i < cut_u1.length) {
             genre_u1 = concatened[i];
             const index = exports.searchByField(genre_u1.genre, 'genre', genres_u2);
@@ -191,29 +212,7 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
     }
 }
 
-/*
- * Auxiliar functions
-*/
-const normalizeGenres = function (genres) {
-    let max = -Infinity, min = Infinity;
-    genres.forEach(genre => {
-        if (genre.times_listened > max) max = genre.times_listened;
-        if (genre.times_listened < min) min = genre.times_listened;
-    });
-
-    const diff = max - min;
-    const ret = genres.map(genre => {
-        return {
-            genre: genre.genre,
-            times_listened: genre.times_listened,
-            normalized: ((genre.times_listened - min) / diff)
-        }
-    });
-
-    return ret;
-}
-
-const normalize = function (array) {
+exports.normalize = function (array) {
     const { max, min } = getMinAndMax(array);
     const diff = max - min;
 
@@ -222,6 +221,11 @@ const normalize = function (array) {
 
     return normalized;
 }
+
+/*
+ * Auxiliar functions
+*/
+
 
 const getMinAndMax = function (array) {
     let max = -Infinity, min = Infinity;
