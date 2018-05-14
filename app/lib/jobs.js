@@ -382,23 +382,28 @@ const createPlays = function (next) {
 }
 
 const getPairs = function (next) {
-    winston.info(`Gathering pairs of ${updatedUsers.length} updated users.`)
-    User.find({}, (error, users) => {
-        if (error) next(error);
-        else {
-            try {
-                let pairs = takePairs(users.map(u => u._id));
-                pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
+    if (updatedUsers.length == 0) {
+        winston.info("No users have listened to new tracks, so there's no need to update the relations.");
+        next({ stop: true });
+    } else {
+        winston.info(`Gathering pairs of ${updatedUsers.length} updated user${updatedUsers.length > 1 ? 's' : ''}.`);
+        User.find({}, (error, users) => {
+            if (error) next(error);
+            else {
+                try {
+                    let pairs = takePairs(users.map(u => u._id));
+                    pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
 
-                results.pairs = pairs;
-
-                winston.info(`Pairs gathered successfully.`);
-                next();
-            } catch (e) {
-                next(e);
+                    results.pairs = pairs;
+    
+                    winston.info(`Pairs gathered successfully.`);
+                    next();
+                } catch (e) {
+                    next(e);
+                }
             }
-        }
-    });
+        });
+    }
 }
 
 const normalizeUsers = function (next) {
@@ -537,7 +542,6 @@ exports.initJob = function (users, next) {
         });
     }, error => {
         if (error) {
-            winston.error(error.stack);
             next(error);
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
@@ -551,12 +555,11 @@ exports.initJob = function (users, next) {
                 calculateRelations,
                 updateRelations
             ], error => {
-                if (error) {
+                if (error && !error.stop) {
                     winston.error("It wasn't possible to update relationships between all users.");
-                    winston.error(error.stack);
                     next(error);
                 } else {
-                    const elapsed = (Date.now() - start)/1000;
+                    const elapsed = (Date.now() - start) / 1000;
 
                     winston.info(`Relations updated successfully in approximately ${elapsed} seconds.`);
                     next();
