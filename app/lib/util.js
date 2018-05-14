@@ -191,6 +191,8 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
                 name: genre_u1.genre,
                 times_listened_user_1: genre_u1.times_listened,
                 times_listened_user_2: genre_u2.times_listened,
+                normalized_user_1: genre_u1.normalized,
+                normalized_user_2: genre_u2.normalized,
                 common_interest: common_interest
             });
         }

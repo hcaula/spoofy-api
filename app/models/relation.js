@@ -9,7 +9,9 @@ module.exports = function () {
             name: String,
             times_listened_user_1: Number,
             times_listened_user_2: Number,
-            commom_interest: Number
+            normalized_user_1: Number,
+            normalized_user_2: Number,
+            common_interest: Number
         }]
     });
 
