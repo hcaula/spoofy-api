@@ -172,7 +172,7 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
         } else {
             genre_u2 = concatened[i];
             const index = exports.searchByField(genre_u2.genre, 'genre', genres_u1);
-            const isShared = (exports.searchByField(genre_u2.genre, 'genre', sharedGenres) > -1);
+            const isShared = (exports.searchByField(genre_u2.genre, 'name', sharedGenres) > -1);
 
             if (index > -1 && !isShared) genre_u1 = genres_u1[index];
         }
@@ -188,11 +188,9 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
             common_interest = (ratio + min) / 2;
 
             sharedGenres.push({
-                genre: genre_u1.genre,
-                times_listened_u1: genre_u1.times_listened,
-                times_listened_u2: genre_u2.times_listened,
-                normalized_u1: genre_u1.normalized,
-                normalized_u2: genre_u2.normalized,
+                name: genre_u1.genre,
+                times_listened_user_1: genre_u1.times_listened,
+                times_listened_user_2: genre_u2.times_listened,
                 common_interest: common_interest
             });
         }

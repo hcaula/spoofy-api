@@ -7,8 +7,8 @@ module.exports = function () {
         afinity: Number,
         genres: [{
             name: String,
-            times_listened_user1: Number,
-            times_listened_user2: Number,
+            times_listened_user_1: Number,
+            times_listened_user_2: Number,
             commom_interest: Number
         }]
     });

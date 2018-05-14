@@ -469,7 +469,8 @@ const calculateRelations = function (next) {
             relations.push({
                 user_1: pair[0],
                 user_2: pair[1],
-                relation: relation
+                afinity: relation.afinity,
+                genres: relation.sharedGenres
             });
         }
         catch (e) {
@@ -479,6 +480,30 @@ const calculateRelations = function (next) {
 
     results.relations = relations;
     next();
+}
+
+const updateRelations = function (next) {
+    winston.info("Updating relations on database.");
+    const relations = results.relations;
+
+    async.eachSeries(relations, (relation, next) => {
+        Relation.findOne({ user_1: relation.user_1, user_2: relation.user_2 }, (error, rel) => {
+            if (error) next(error);
+            else if (!rel) rel = new Relation(relation);
+            else {
+                rel.afinity = relation.afinity;
+                rel.genres = relation.genres;
+            }
+
+            rel.save(error => {
+                if (error) next(error);
+                else next();
+            });
+        });
+    }, error => {
+        if (error) next(error);
+        else next();
+    });
 }
 
 exports.initJob = function (users, next) {
@@ -517,17 +542,23 @@ exports.initJob = function (users, next) {
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
             winston.info('Updating relations.');
+
+            const start = Date.now();
+
             async.series([
                 getPairs,
                 normalizeUsers,
-                calculateRelations
+                calculateRelations,
+                updateRelations
             ], error => {
                 if (error) {
                     winston.error("It wasn't possible to update relationships between all users.");
                     winston.error(error.stack);
                     next(error);
                 } else {
-                    console.log(results.normalized_genres.length);
+                    const elapsed = (Date.now() - start)/1000;
+
+                    winston.info(`Relations updated successfully in approximately ${elapsed} seconds.`);
                     next();
                 }
             });
