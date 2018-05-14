@@ -380,7 +380,8 @@ const createPlays = function (next) {
     });
 }
 
-const getPairs = function(next) {
+const getPairs = function (next) {
+    winston.info(`Gathering pairs of ${updatedUsers.length} updated users.`)
     User.find({}, (error, users) => {
         if (error) next(error);
         else {
@@ -388,60 +389,63 @@ const getPairs = function(next) {
             pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
 
             results.pairs = pairs;
+
+            winston.info(`Pairs gathered successfully.`);
             next();
         }
     });
 }
 
-const renewRelations = function (callback) {
+const normalizeUsers = function (next) {
+    winston.info(`Normalizing users listened genres.`);
+
+    const pairs = results.pairs;
+    let normalized_genres = [];
+
     User.find({}, (error, users) => {
-        if (error) callback(error);
+        if (error) next(error);
         else {
-            const pairs = takePairs(users.map(u => u._id));
-
-            let normalizedUsers = [];
-            async.eachSeries(pairs, (pair, next) => {
-                /* If both users have not listened to new tracks, we don't need to update their relation */
-                if (!updatedUsers.includes(pair[0]) && !updatedUsers.includes(pair[1])) next();
-                else {
-                    let toBeNormalized = [];
-                    for (let i = 0; i < 2; i++) {
-                        const found = (searchByField(pair[i], 'user', normalizedUsers) > -1);
-                        if (!found) toBeNormalized.push(pair[i]);
-                    }
-
-                    async.eachSeries(toBeNormalized, (user, next) => {
-                        getUserPlays({ _id: user }, {}, (error, plays) => {
+            async.eachSeries(users, (user, next) => {
+                Play.find({ user: user._id }, (error, plays) => {
+                    winston.info(`Normalizing data for user ${user.display_name}.`);
+                    if (error) next(error);
+                    else {
+                        getPlayTracks(plays, {}, (error, tracks) => {
                             if (error) next(error);
                             else {
-                                getPlayTracks(plays, {}, (error, tracks) => {
-                                    if (error) next(error);
-                                    else {
-                                        const genres = organizeGenres(tracks);
-                                        normalizedUsers.push({
-                                            user: user,
-                                            normalized: normalize(genres.map(g => g.times_listened))
-                                        });
-                                    }
-                                });
+                                try {
+                                    const organizedGenres = organizeGenres(tracks);
+                                    const normalized = normalize(organizedGenres.map(g => g.times_listened));
+
+                                    const genres = organizedGenres.map((e, i) => {
+                                        e.normalized = normalized[i];
+                                        return e;
+                                    });
+
+                                    normalized_genres.push({
+                                        user: user._id,
+                                        genres: genres
+                                    });
+
+                                    next();
+                                }
+                                catch (e) {
+                                    next(e);
+                                }
                             }
                         });
-                    }, error => {
-                        if(error) next(error);
-                        else {
-                            console.log(normalizedUsers);
-                            next();
-                        }
-                    });
-                }
+                    }
+                });
             }, error => {
-                if (error) callback(error);
-                else callback();
+                if(error) next(error);
+                else {
+                    results.normalized_genres = normalized_genres;
+                    next();
+                }
             });
         }
-    })
+    });
 }
-
 
 exports.initJob = function (users, next) {
     results = {};
@@ -479,11 +483,14 @@ exports.initJob = function (users, next) {
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
             async.series([
-                getPairs
+                getPairs,
+                normalizeUsers
             ], error => {
-                if(error) next(error);
-                else {
-                    console.log(results.pairs);
+                if (error) {
+                    winston.error(error.stack);
+                    next(error);
+                } else {
+                    console.log(results.normalized_genres);
                     next();
                 }
             });
