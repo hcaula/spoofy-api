@@ -133,7 +133,7 @@ exports.getPlayTracks = function (plays, sort_by, callback) {
 
 exports.relationByGenre = function (genres_u1, genres_u2) {
     const limit = 50;
-    let usersRelation = 0;
+    let afinity = 0;
     let sharedGenres = [];
 
     const normalized_u1 = normalize(genres_u1.map(g => g.times_listened));
@@ -142,73 +142,51 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
     genres_u1.map((e, i) => genres_u1[i].normalized = normalized_u1[i]);
     genres_u2.map((e, i) => genres_u2[i].normalized = normalized_u2[i]);
 
-    genres_u1.forEach((genre_u1, i) => {
-        if (i < limit) {
+    const cut_u1 = genres_u1.slice(0, limit);
+    const cut_u2 = genres_u2.slice(0, limit);
+
+    const concatened = cut_u1.concat(cut_u2);
+
+    for (let i = 0; i < concatened.length; i++) {
+        let genre_u1, genre_u2, common_interest = 0;
+        
+        if (i < cut_u1.length) {
+            genre_u1 = concatened[i];
             const index = exports.searchByField(genre_u1.genre, 'genre', genres_u2);
-            let genreRelation = 0;
-
-            if (index > -1) {
-                genre_u2 = genres_u2[index];
-
-                let max = Math.max(genre_u1.normalized, genre_u2.normalized);
-
-                /* Avoid division by zero */
-                if (max == 0) max = 0.0001;
-                const min = Math.min(genre_u1.normalized, genre_u2.normalized);
-                const ratio = min/max;
-
-                genreRelation = (ratio + min) / 2;
-
-                sharedGenres.push({
-                    genre: genre_u1.genre,
-                    times_listened_u1: genre_u1.times_listened,
-                    times_listened_u2: genre_u2.times_listened,
-                    normalized_u1: genre_u1.normalized,
-                    normalized_u2: genre_u2.normalized,
-                    relation: genreRelation
-                });
-            }
-
-            usersRelation += genreRelation;
-            
-        } else return;
-    });
-
-    genres_u2.forEach((genre_u2, i) => {
-        if (i < limit) {
+            if (index > -1) genre_u2 = genres_u2[index];
+        } else {
+            genre_u2 = concatened[i];
             const index = exports.searchByField(genre_u2.genre, 'genre', genres_u1);
-            let genreRelation = 0;
+            const isShared = (exports.searchByField(genre_u2.genre, 'genre', sharedGenres) > -1);
 
-            if (index > -1 && exports.searchByField(genre_u2.genre, 'genre', sharedGenres) == -1) {
-                genre_u1 = genres_u1[index];
+            if (index > -1 && !isShared) genre_u1 = genres_u1[index];
+        }
 
-                let max = Math.max(genre_u2.normalized, genre_u1.normalized);
+        if (genre_u1 && genre_u2) {
+            let max = Math.max(genre_u1.normalized, genre_u2.normalized);
 
-                /* Avoid division by zero */
-                if (max == 0) max = 0.0001;
-                const min = Math.min(genre_u2.normalized, genre_u1.normalized);
-                const ratio = min/max;
+            /* Avoid division by zero */
+            if (max == 0) max = 0.0001;
+            const min = Math.min(genre_u1.normalized, genre_u2.normalized);
+            const ratio = min / max;
 
-                genreRelation = (ratio + min) / 2;
+            common_interest = (ratio + min) / 2;
 
-                sharedGenres.push({
-                    genre: genre_u2.genre,
-                    times_listened_u1: genre_u1.times_listened,
-                    times_listened_u2: genre_u2.times_listened,
-                    normalized_u1: genre_u1.normalized,
-                    normalized_u2: genre_u2.normalized,
-                    relation: genreRelation
-                });
-            }
+            sharedGenres.push({
+                genre: genre_u1.genre,
+                times_listened_u1: genre_u1.times_listened,
+                times_listened_u2: genre_u2.times_listened,
+                normalized_u1: genre_u1.normalized,
+                normalized_u2: genre_u2.normalized,
+                common_interest: common_interest
+            });
+        }
+        afinity += common_interest;
+    }
 
-            usersRelation += genreRelation;
-            
-        } else return;
-    });
-
-    sharedGenres = sharedGenres.sort((a, b) => b.relation - a.relation).slice(0, 10);
+    sharedGenres = sharedGenres.sort((a, b) => b.common_interest - a.common_interest).slice(0, 10);
     return {
-        afinity: usersRelation,
+        afinity: afinity,
         sharedGenres: sharedGenres
     }
 }
