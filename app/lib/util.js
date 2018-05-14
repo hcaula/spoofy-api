@@ -185,7 +185,7 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
             const min = Math.min(genre_u1.normalized, genre_u2.normalized);
             const ratio = min / max;
 
-            common_interest = (ratio + min) / 2;
+            common_interest = (0.5 * ratio + 1.5 * min) / 2;
 
             sharedGenres.push({
                 name: genre_u1.genre,
