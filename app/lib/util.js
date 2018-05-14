@@ -157,12 +157,6 @@ exports.relationByGenre = function (genres_u1, genres_u2) {
     let afinity = 0;
     let sharedGenres = [];
 
-    const normalized_u1 = exports.normalize(genres_u1.map(g => g.times_listened));
-    const normalized_u2 = exports.normalize(genres_u2.map(g => g.times_listened));
-
-    genres_u1.map((e, i) => genres_u1[i].normalized = normalized_u1[i]);
-    genres_u2.map((e, i) => genres_u2[i].normalized = normalized_u2[i]);
-
     const cut_u1 = genres_u1.slice(0, limit);
     const cut_u2 = genres_u2.slice(0, limit);
 

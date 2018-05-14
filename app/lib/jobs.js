@@ -126,7 +126,8 @@ const getRecentlyPlayedTracks = (next) => {
     request('https', options, (error, response) => {
         if (error) {
             let err = new Error(error);
-            err.message = 'Authentication error.';
+            err.message = `Authentication error: ${error.message}`;
+            err.stop = true;
             next(err);
         } else {
             winston.info("Recently played tracks requested successfully.");
@@ -385,13 +386,17 @@ const getPairs = function (next) {
     User.find({}, (error, users) => {
         if (error) next(error);
         else {
-            let pairs = takePairs(users.map(u => u._id));
-            pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
+            try {
+                let pairs = takePairs(users.map(u => u._id));
+                pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
 
-            results.pairs = pairs;
+                results.pairs = pairs;
 
-            winston.info(`Pairs gathered successfully.`);
-            next();
+                winston.info(`Pairs gathered successfully.`);
+                next();
+            } catch (e) {
+                next(e);
+            }
         }
     });
 }
@@ -437,7 +442,7 @@ const normalizeUsers = function (next) {
                     }
                 });
             }, error => {
-                if(error) next(error);
+                if (error) next(error);
                 else {
                     results.normalized_genres = normalized_genres;
                     next();
@@ -445,6 +450,35 @@ const normalizeUsers = function (next) {
             });
         }
     });
+}
+
+const calculateRelations = function (next) {
+    winston.info('Calculation users relations.');
+    const pairs = results.pairs;
+    const genres = results.normalized_genres;
+    let relations = [];
+
+    pairs.forEach(pair => {
+        winston.info(`Calculating relations for users ${pair[0]} and ${pair[1]}`);
+        try {
+            const genres_u1 = genres[searchByField(pair[0], 'user', genres)].genres;
+            const genres_u2 = genres[searchByField(pair[1], 'user', genres)].genres;
+
+            const relation = relationByGenre(genres_u1, genres_u2);
+
+            relations.push({
+                user_1: pair[0],
+                user_2: pair[1],
+                relation: relation
+            });
+        }
+        catch (e) {
+            next(e);
+        }
+    });
+
+    results.relations = relations;
+    next();
 }
 
 exports.initJob = function (users, next) {
@@ -482,15 +516,18 @@ exports.initJob = function (users, next) {
             next(error);
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
+            winston.info('Updating relations.');
             async.series([
                 getPairs,
-                normalizeUsers
+                normalizeUsers,
+                calculateRelations
             ], error => {
                 if (error) {
+                    winston.error("It wasn't possible to update relationships between all users.");
                     winston.error(error.stack);
                     next(error);
                 } else {
-                    console.log(results.normalized_genres);
+                    console.log(results.normalized_genres.length);
                     next();
                 }
             });
