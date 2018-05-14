@@ -5,15 +5,12 @@ const simple_statistics = require('simple-statistics');
 
 const Track = require('mongoose').model('Track');
 const User = require('mongoose').model('User');
+const Relation = require('mongoose').model('Relation');
 
 const errors = require('../lib/errors');
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const {
-    organizeGenres,
-    getUserPlays,
-    getPlayTracks,
-    relationByGenre } = require('../lib/util');
+const { organizeGenres } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
@@ -76,52 +73,14 @@ const getFeaturesStatistics = function (req, res) {
     res.status(200).json({ statistics: stats })
 }
 
-/* Calculates the relation between logged user and other users based on listened genres */
 const getRelations = function (req, res, next) {
-    const user_tracks = req.tracks;
-    const user_genres = organizeGenres(user_tracks);
-
-    let relations = [];
-    User.find({ _id: { $ne: req.user._id } }, (error, users) => {
-        if (error) {
+    Relation.find({}, (error, relations) => {
+        if(error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            async.eachSeries(users, (user, next) => {
-                getUserPlays(user, {}, (error, plays) => {
-                    if (error) next(error);
-                    else {
-                        getPlayTracks(plays, {}, (error, tracks) => {
-                            if (error) next(error);
-                            else {
-                                try {
-                                    const u2genres = organizeGenres(tracks);
-                                    const relation = relationByGenre(user_genres, u2genres);
-
-                                    relations.push({
-                                        user: user.display_name,
-                                        relation: relation
-                                    });
-
-                                    next();
-                                }
-                                catch (e) {
-                                    next(e);
-                                }
-                            }
-                        });
-                    }
-                });
-            }, error => {
-                if (error) {
-                    winston.error(error.stack);
-                    res.status(500).json(errors[500]);
-                } else {
-                    relations = relations.sort((a, b) => b.relation.afinity - a.relation.afinity);
-                    res.status(200).json({
-                        relations: relations
-                    });
-                }
+            res.status(200).json({
+                relations: relations
             });
         }
     });
