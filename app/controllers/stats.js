@@ -19,6 +19,7 @@ module.exports = function (app) {
     app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
 
     app.get('/api/v1/stats/relations/', auth_phase, filter_phase, getRelations);
+    app.get('/api/v1/stats/relations/me', auth_phase, filter_phase, getLoggedRelations);
 }
 
 const getTracks = function (req, res) {
@@ -73,9 +74,51 @@ const getFeaturesStatistics = function (req, res) {
     res.status(200).json({ statistics: stats })
 }
 
+const getLoggedRelations = function (req, res, next) {
+    let ret = [];
+
+    Relation.find({ $or: [{ user_1: req.user._id }, { user_2: req.user._id }] }, (error, relations) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+
+            async.eachSeries(relations, (relation, next) => {
+                let rel;
+                let _id = ((relation.user_1 == req.user._id ? relation.user_2 : relation.user_1));
+
+                User.findById(_id, (error, user) => {
+                    if(error) next(error);
+                    else {
+
+                        rel = {
+                            user: user.display_name,
+                            afinity: relation.afinity,
+                            genres: relation.genres
+                        }
+                        ret.push(rel);
+                        next();
+                    }
+                });
+            }, error => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    let sorted = ret.sort((a,b) => b.afinity - a.afinity);
+                    res.status(200).json({
+                        relations: sorted
+                    });
+                }
+            });
+
+        }
+    });
+}
+
 const getRelations = function (req, res, next) {
     Relation.find({}, (error, relations) => {
-        if(error) {
+        if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
