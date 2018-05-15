@@ -11,7 +11,7 @@ const Track = require('mongoose').model('Track');
 const Relation = require('mongoose').model('Relation');
 
 const {
-    organizeGenres,
+    organizeMeta,
     getUserPlays,
     getPlayTracks,
     relationByGenre,
@@ -424,7 +424,7 @@ const normalizeUsers = function (next) {
                             if (error) next(error);
                             else {
                                 try {
-                                    const organizedGenres = organizeGenres(tracks);
+                                    const organizedGenres = organizeMeta(tracks, 'genres', null, 'genre');
                                     const normalized = normalize(organizedGenres.map(g => g.times_listened));
 
                                     const genres = organizedGenres.map((e, i) => {

@@ -10,11 +10,12 @@ const Relation = require('mongoose').model('Relation');
 const errors = require('../lib/errors');
 const filter_phase = require('../lib/filter_phase');
 const auth_phase = require('../lib/auth_phase');
-const { organizeGenres } = require('../lib/util');
+const { organizeMeta } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
     app.get('/api/v1/stats/genres/', auth_phase, filter_phase, getGenres);
+    app.get('/api/v1/stats/artists/', auth_phase, filter_phase, getArtists);
     app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeatures);
     app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
 
@@ -28,9 +29,16 @@ const getTracks = function (req, res) {
 
 const getGenres = function (req, res) {
     const tracks = req.tracks;
-    const genres = organizeGenres(tracks);
+    const genres = organizeMeta(tracks, 'genres', null, 'genre');
 
     res.status(200).json({ genres: genres });
+}
+
+const getArtists = function(req, res) {
+    const tracks = req.tracks;
+    const artists = organizeMeta(tracks, 'artists', 'name', 'artist');
+
+    res.status(200).json({ artists: artists });
 }
 
 const getFeatures = function (req, res) {

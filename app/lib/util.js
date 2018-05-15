@@ -62,28 +62,31 @@ exports.countElement = function (elem, array) {
     return array.filter(x => (x == elem)).length;
 }
 
-exports.organizeGenres = function (tracks) {
-    let genres = [], counted_genres = [], ret_genres = [];
+exports.organizeMeta = function(tracks, meta, search, field) {
+    let metas = [], counted_metas = [], ret_metas = [];
 
     tracks.forEach(track => {
-        track.genres.forEach(g => genres.push(g));
+        track[meta].forEach(m => {
+            if(search) metas.push(m[search]);
+            else metas.push(m);
+        });
     });
 
-    genres.forEach(g => {
-        if (!counted_genres.includes(g)) {
-            counted_genres.push(g);
-            ret_genres.push({
-                genre: g,
-                times_listened: exports.countElement(g, genres)
-            });
+    metas.forEach(m => {
+        let included = counted_metas.includes(m);
+        if (!included) {
+            counted_metas.push(m);
+            let obj = {};
+            obj[(field || meta)] = m;
+            obj.times_listened = exports.countElement(m, metas);
+            ret_metas.push(obj);
         }
     });
 
-    const sorted = ret_genres.sort((a, b) => b.times_listened - a.times_listened)
+    const sorted = ret_metas.sort((a, b) => b.times_listened - a.times_listened)
 
     return sorted;
 }
-
 exports.getUserPlays = function (user, options, callback) {
     let begin_hour = options.begin_hour;
     let begin_day = options.begin_day;
