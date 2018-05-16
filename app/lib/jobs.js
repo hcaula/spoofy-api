@@ -11,15 +11,13 @@ const Track = require('mongoose').model('Track');
 const Relation = require('mongoose').model('Relation');
 
 const { relationByGenre } = require('./relations');
-
+const { getUserPlays, getPlayTracks } = require('./tracks');
 const {
     organizeMeta,
-    getUserPlays,
-    getPlayTracks,
     takePairs,
     normalize,
-    searchByField } = require('../lib/util');
-
+    searchByField } = require('./util');
+    
 let results;
 let updatedUsers;
 

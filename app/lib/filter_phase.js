@@ -4,8 +4,8 @@ const async = require('async');
 const Track = require('mongoose').model('Track');
 const Play = require('mongoose').model('Play');
 
-const errors = require('../lib/errors');
-const { getUserPlays, getPlayTracks } = require('../lib/util');
+const errors = require('./errors');
+const { getUserPlays, getPlayTracks } = require('./tracks');
 
 const getLoggedUserPlays = function (req, res, next) {
     const user = req.user;
