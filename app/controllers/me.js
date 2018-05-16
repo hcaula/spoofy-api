@@ -13,14 +13,25 @@ const auth_phase = require('../lib/auth_phase');
 const { organizeMeta } = require('../lib/util');
 
 module.exports = function (app) {
-    app.get('/api/v1/stats/tracks', auth_phase, filter_phase, getTracks);
-    app.get('/api/v1/stats/genres/', auth_phase, filter_phase, getGenres);
-    app.get('/api/v1/stats/artists/', auth_phase, filter_phase, getArtists);
-    app.get('/api/v1/stats/features/', auth_phase, filter_phase, getFeatures);
-    app.get('/api/v1/stats/features/statistics', auth_phase, filter_phase, getFeaturesStatistics);
+    app.get('/api/v1/me', auth_phase, getUser);
+    app.get('/api/v1/me/tracks/', auth_phase, filter_phase, getTracks);
+    app.get('/api/v1/me/genres/', auth_phase, filter_phase, getGenres);
+    app.get('/api/v1/me/artists/', auth_phase, filter_phase, getArtists);
+    app.get('/api/v1/me/features/', auth_phase, filter_phase, getFeatures);
+    app.get('/api/v1/me/statistics/', auth_phase, filter_phase, getFeaturesStatistics);
+    app.get('/api/v1/me/relations/', auth_phase, filter_phase, getRelations);
+}
 
-    app.get('/api/v1/stats/relations/', auth_phase, filter_phase, getRelations);
-    app.get('/api/v1/stats/relations/me', auth_phase, filter_phase, getLoggedRelations);
+const getUser = function (req, res) {
+    const user = req.user;
+    res.status(200).json({
+        _id: user._id,
+        display_name: user.display_name,
+        email: user.email,
+        uri: user.uri,
+        href: user.href,
+        images: user.images
+    });
 }
 
 const getTracks = function (req, res) {
@@ -82,7 +93,7 @@ const getFeaturesStatistics = function (req, res) {
     res.status(200).json({ statistics: stats })
 }
 
-const getLoggedRelations = function (req, res, next) {
+const getRelations = function (req, res, next) {
     let ret = [];
 
     Relation.find({ $or: [{ user_1: req.user._id }, { user_2: req.user._id }] }, (error, relations) => {
@@ -126,36 +137,6 @@ const getLoggedRelations = function (req, res, next) {
                 }
             });
 
-        }
-    });
-}
-
-const getRelations = function (req, res, next) {
-    Relation.find({}, (error, relations) => {
-        if (error) {
-            winston.error(error.stack);
-            res.status(500).json(errors[500]);
-        } else {
-            User.find({}, (error, users) => {
-                let ret_users = users.map(u => {
-                    return {
-                        _id: u._id,
-                        display_name: u.display_name,
-                        href: u.href,
-                        uri: u.uri,
-                        images: u.images
-                    }
-                });
-                if (error) {
-                    winston.error(error.stack);
-                    res.status(500).json(errors[500]);
-                } else {
-                    res.status(200).json({
-                        users: ret_users,
-                        relations: relations
-                    });
-                }
-            })
         }
     });
 }
