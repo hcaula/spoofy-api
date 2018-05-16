@@ -10,11 +10,12 @@ const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
 const Relation = require('mongoose').model('Relation');
 
+const { relationByGenre } = require('./relations');
+
 const {
     organizeMeta,
     getUserPlays,
     getPlayTracks,
-    relationByGenre,
     takePairs,
     normalize,
     searchByField } = require('../lib/util');
