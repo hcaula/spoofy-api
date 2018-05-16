@@ -17,7 +17,7 @@ const {
     takePairs,
     normalize,
     searchByField } = require('./util');
-    
+
 let results;
 let updatedUsers;
 
@@ -409,7 +409,7 @@ const normalizeUsers = function (next) {
     winston.info(`Normalizing users listened genres.`);
 
     const pairs = results.pairs;
-    let normalized_genres = [];
+    let normalized_metas = [];
 
     User.find({}, (error, users) => {
         if (error) next(error);
@@ -424,16 +424,25 @@ const normalizeUsers = function (next) {
                             else {
                                 try {
                                     const organizedGenres = organizeMeta(tracks, 'genres', null, 'genre');
-                                    const normalized = normalize(organizedGenres.map(g => g.times_listened));
+                                    const organizedArtists = organizeMeta(tracks, 'artists', 'name', 'artist');
+
+                                    const normalizedGenres = normalize(organizedGenres.map(g => g.times_listened));
+                                    const normalizedArtists = normalize(organizedArtists.map(a => a.times_listened));
 
                                     const genres = organizedGenres.map((e, i) => {
-                                        e.normalized = normalized[i];
+                                        e.normalized = normalizedGenres[i];
                                         return e;
                                     });
 
-                                    normalized_genres.push({
+                                    const artists = organizedArtists.map((e, i) => {
+                                        e.normalized = normalizedArtists[i];
+                                        return e;
+                                    });
+
+                                    normalized_metas.push({
                                         user: user._id,
-                                        genres: genres
+                                        genres: genres,
+                                        artists: artists
                                     });
 
                                     next();
@@ -448,7 +457,7 @@ const normalizeUsers = function (next) {
             }, error => {
                 if (error) next(error);
                 else {
-                    results.normalized_genres = normalized_genres;
+                    results.normalized = normalized_metas;
                     next();
                 }
             });
@@ -459,14 +468,14 @@ const normalizeUsers = function (next) {
 const calculateRelations = function (next) {
     winston.info('Calculation users relations.');
     const pairs = results.pairs;
-    const genres = results.normalized_genres;
+    const normalized = results.normalized;
     let relations = [];
 
     pairs.forEach(pair => {
         winston.info(`Calculating relations for users ${pair[0]} and ${pair[1]}`);
         try {
-            const genres_u1 = genres[searchByField(pair[0], 'user', genres)].genres;
-            const genres_u2 = genres[searchByField(pair[1], 'user', genres)].genres;
+            const genres_u1 = normalized[searchByField(pair[0], 'user', normalized)].genres;
+            const genres_u2 = normalized[searchByField(pair[1], 'user', normalized)].genres;
 
             const relation = relationByGenre(genres_u1, genres_u2);
 
