@@ -472,7 +472,6 @@ const calculateRelations = function (next) {
     let relations = [];
 
     pairs.forEach(pair => {
-        winston.info(`Calculating relations for users ${pair[0]} and ${pair[1]}`);
         try {
             const index_u1 = searchByField(pair[0], 'user', normalized);
             const index_u2 = searchByField(pair[1], 'user', normalized);
@@ -498,6 +497,7 @@ const calculateRelations = function (next) {
             });
         }
         catch (e) {
+            winston.error(`Problematic users: ${pair[0]} & ${pair[1]}.`)
             next(e);
         }
     });
