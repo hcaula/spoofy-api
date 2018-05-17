@@ -10,7 +10,7 @@ const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
 const Relation = require('mongoose').model('Relation');
 
-const { relationByGenre } = require('./relations');
+const { calculateRelation } = require('./relations');
 const { getUserPlays, getPlayTracks } = require('./tracks');
 const {
     organizeMeta,
@@ -474,23 +474,33 @@ const calculateRelations = function (next) {
     pairs.forEach(pair => {
         winston.info(`Calculating relations for users ${pair[0]} and ${pair[1]}`);
         try {
-            const genres_u1 = normalized[searchByField(pair[0], 'user', normalized)].genres;
-            const genres_u2 = normalized[searchByField(pair[1], 'user', normalized)].genres;
+            const index_u1 = searchByField(pair[0], 'user', normalized);
+            const index_u2 = searchByField(pair[1], 'user', normalized);
 
-            const relation = relationByGenre(genres_u1, genres_u2);
+            const user_1 = {
+                genres: normalized[index_u1].genres,
+                artists: normalized[index_u1].artists
+            }
+
+            const user_2 = {
+                genres: normalized[index_u2].genres,
+                artists: normalized[index_u2].artists
+            }
+
+            const relation = calculateRelation(user_1, user_2);
 
             relations.push({
                 user_1: pair[0],
                 user_2: pair[1],
                 affinity: relation.affinity,
-                genres: relation.sharedGenres
+                genres: relation.shared.genres,
+                artists: relation.shared.artists
             });
         }
         catch (e) {
             next(e);
         }
     });
-
     results.relations = relations;
     next();
 }

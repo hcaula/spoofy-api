@@ -119,7 +119,8 @@ const getRelations = function (req, res, next) {
                         rel = {
                             user: ret_user,
                             affinity: relation.affinity,
-                            genres: relation.genres
+                            genres: relation.genres,
+                            artists: relation.artists
                         }
                         ret.push(rel);
                         next();
