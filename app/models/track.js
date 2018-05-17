@@ -6,6 +6,7 @@ module.exports = function() {
         name: String,
         artists: [
            {
+               id: String,
                name: String,
                href: String,
                images: [{

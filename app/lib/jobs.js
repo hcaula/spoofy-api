@@ -298,6 +298,7 @@ const gatherTracksInfo = function (next) {
                 let obj = {
                     name: artist.name,
                     href: artist.href,
+                    id: artist.id,
                     genres: [],
                     images: []
                 };

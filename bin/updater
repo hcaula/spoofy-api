@@ -2,11 +2,13 @@
 
 /* Change env node here */
 process.env.NODE_ENV = 'local';
+const access_token = "BQBkDFavKpfPX-aqcABrlxshevy7HsOHH6irU-RKYK0uutvJlRha8cdm1uj29mZrZGdwAJnV3UvvkBotm8EQkMi-gxrVlMkdxqCQlSgl9UDXvyuYpKqVX5vcmLN2HCTToAEIrlVXc9zMBwoD8_3FTBoSFiQQDT2hgXSlHiRBi_TFag";
 
 let start = Date.now();
 
 const winston = require('winston');
 const async = require('async');
+const urlencoder = require('urlencode');
 
 require('../app/models/relation')();
 require('../app/models/play')();
@@ -28,27 +30,87 @@ configWinston(function () {
         if (error) winston.error(error.stack);
         else {
             let artists = [];
-            winston.info('Getting tracks for DB.');
-            Track.find({}, (error, tracks) => {
-                tracks.forEach(t => {
-                    t.artists.forEach(a => {
-                        if(!artists.includes(a.name)) artists.push(a.name);
+            winston.info('Getting tracks from local DB.');
+            Track.find({ "artists.id": { $exists: false } }, (error, tracks) => {
+                if (error) next(error);
+                else {
+                    tracks.forEach(t => {
+                        t.artists.forEach(a => {
+                            if (!artists.includes(a.name)) artists.push(a.name);
+                        });
                     });
-                });
 
-                winston.info('Dividing artists by groups of 50.');
-                let mod_artists = [[]];
-                let index = 0;
-                artists.forEach((a, i) => {
-                    if(i % 50 != 0 || i == 0) mod_artists[index].push(a);
-                    else {
-                        mod_artists.push([]);
-                        index++;
-                    }
-                });
-                
+                    count = 1;
+                    async.eachSeries(artists, (a, next) => {
+                        try {
+                            winston.info(`Requesting artist: ${a} (${count} out of ${artists.length}).`);
+
+                            let options = {
+                                host: 'api.spotify.com',
+                                path: `/v1/search?type=artist&limit=1&q=`,
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Bearer ${access_token}`,
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                }
+                            }
+
+                            options.path += urlencoder(`${a}`);
+
+                            request('https', options, (error, response) => {
+                                if (error) next(error);
+                                else {
+                                    const artist = response.artists.items[0];
+                                    if (!artist) {
+                                        winston.warn('Artist was not found on Spotify search.');
+                                        next();
+                                    } else {
+                                        Track.find({ "artists.name": a }, (error, tracks) => {
+                                            if (error) next(error);
+                                            else {
+                                                async.each(tracks, (t, next) => {
+                                                    t.artists.forEach((tr, i) => {
+                                                        if (tr.name == a) {
+                                                            t.artists[i].images = artist.images;
+                                                            t.artists[i].genres = artist.genres;
+                                                            t.artists[i].popularity = artist.popularity;
+                                                            t.artists[i].id = artist.id;
+                                                        }
+                                                    });
+
+                                                    t.save(error => {
+                                                        if (error) next(error);
+                                                        else next();
+                                                    });
+                                                }, error => {
+                                                    if (error) next(error);
+                                                    else {
+                                                        count++;
+                                                        next();
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                        } catch (e) {
+                            next(e);
+                        }
+                    }, error => {
+                        if (error) {
+                            winston.error(error.stack);
+                            process.exit(1);
+                        }
+                        else {
+                            winston.info('Tracks updated successfully.');
+                            process.exit(0);
+                        }
+                    });
+                }
             });
-            
         }
     });
 });
