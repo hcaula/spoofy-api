@@ -8,8 +8,18 @@ const { request } = require('./requests');
 const User = require('mongoose').model('User');
 const Play = require('mongoose').model('Play');
 const Track = require('mongoose').model('Track');
+const Relation = require('mongoose').model('Relation');
+
+const { calculateRelation } = require('./relations');
+const { getUserPlays, getPlayTracks } = require('./tracks');
+const {
+    organizeMeta,
+    takePairs,
+    normalize,
+    searchByField } = require('./util');
 
 let results;
+let updatedUsers;
 
 /* Request new token using the refresh token */
 const refreshToken = function (next) {
@@ -115,7 +125,8 @@ const getRecentlyPlayedTracks = (next) => {
     request('https', options, (error, response) => {
         if (error) {
             let err = new Error(error);
-            err.message = 'Authentication error.';
+            err.message = `Authentication error: ${error.message}`;
+            err.stop = true;
             next(err);
         } else {
             winston.info("Recently played tracks requested successfully.");
@@ -138,7 +149,7 @@ const shaveTracks = function (next) {
 
     const query = { user: userId, track: { $in: trackIds }, "played_at.fullDate": { $in: played_ats } };
 
-    Play.find(query, function (error, play) {
+    Play.find(query, (error, play) => {
         if (error) {
             let err = new Error(error);
             err.type = "db_error";
@@ -159,6 +170,8 @@ const shaveTracks = function (next) {
                     winston.warn("User has not listened to any new tracks.");
                     next({ stop: true });
                 } else {
+                    updatedUsers.push(user._id);
+
                     diff = shavedTracks.length;
                     winston.info(`${diff} new listened track${(diff > 1 ? 's' : '')} found.`);
 
@@ -367,9 +380,159 @@ const createPlays = function (next) {
     });
 }
 
+const getPairs = function (next) {
+    if (updatedUsers.length == 0) {
+        winston.info("No users have listened to new tracks, so there's no need to update the relations.");
+        next({ stop: true });
+    } else {
+        winston.info(`Gathering pairs of ${updatedUsers.length} updated user${updatedUsers.length > 1 ? 's' : ''}.`);
+        User.find({}, (error, users) => {
+            if (error) next(error);
+            else {
+                try {
+                    let pairs = takePairs(users.map(u => u._id));
+                    pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
+
+                    results.pairs = pairs;
+    
+                    winston.info(`Pairs gathered successfully.`);
+                    next();
+                } catch (e) {
+                    next(e);
+                }
+            }
+        });
+    }
+}
+
+const normalizeUsers = function (next) {
+    winston.info(`Normalizing users listened genres.`);
+
+    const pairs = results.pairs;
+    let normalized_metas = [];
+
+    User.find({}, (error, users) => {
+        if (error) next(error);
+        else {
+            async.eachSeries(users, (user, next) => {
+                Play.find({ user: user._id }, (error, plays) => {
+                    winston.info(`Normalizing data for user ${user.display_name}.`);
+                    if (error) next(error);
+                    else {
+                        getPlayTracks(plays, {}, (error, tracks) => {
+                            if (error) next(error);
+                            else {
+                                try {
+                                    const organizedGenres = organizeMeta(tracks, 'genres', null, 'genre');
+                                    const organizedArtists = organizeMeta(tracks, 'artists', 'name', 'artist');
+
+                                    const normalizedGenres = normalize(organizedGenres.map(g => g.times_listened));
+                                    const normalizedArtists = normalize(organizedArtists.map(a => a.times_listened));
+
+                                    const genres = organizedGenres.map((e, i) => {
+                                        e.normalized = normalizedGenres[i];
+                                        return e;
+                                    });
+
+                                    const artists = organizedArtists.map((e, i) => {
+                                        e.normalized = normalizedArtists[i];
+                                        return e;
+                                    });
+
+                                    normalized_metas.push({
+                                        user: user._id,
+                                        genres: genres,
+                                        artists: artists
+                                    });
+
+                                    next();
+                                }
+                                catch (e) {
+                                    next(e);
+                                }
+                            }
+                        });
+                    }
+                });
+            }, error => {
+                if (error) next(error);
+                else {
+                    results.normalized = normalized_metas;
+                    next();
+                }
+            });
+        }
+    });
+}
+
+const calculateRelations = function (next) {
+    winston.info('Calculation users relations.');
+    const pairs = results.pairs;
+    const normalized = results.normalized;
+    let relations = [];
+
+    pairs.forEach(pair => {
+        try {
+            const index_u1 = searchByField(pair[0], 'user', normalized);
+            const index_u2 = searchByField(pair[1], 'user', normalized);
+
+            const user_1 = {
+                genres: normalized[index_u1].genres,
+                artists: normalized[index_u1].artists
+            }
+
+            const user_2 = {
+                genres: normalized[index_u2].genres,
+                artists: normalized[index_u2].artists
+            }
+
+            const relation = calculateRelation(user_1, user_2);
+
+            relations.push({
+                user_1: pair[0],
+                user_2: pair[1],
+                affinity: relation.affinity,
+                genres: relation.shared.genres,
+                artists: relation.shared.artists
+            });
+        }
+        catch (e) {
+            winston.error(`Problematic users: ${pair[0]} & ${pair[1]}.`)
+            next(e);
+        }
+    });
+    results.relations = relations;
+    next();
+}
+
+const updateRelations = function (next) {
+    winston.info("Updating relations on database.");
+    const relations = results.relations;
+
+    async.eachSeries(relations, (relation, next) => {
+        Relation.findOne({ user_1: relation.user_1, user_2: relation.user_2 }, (error, rel) => {
+            if (error) next(error);
+            else if (!rel) rel = new Relation(relation);
+            else {
+                rel.affinity = relation.affinity;
+                rel.genres = relation.genres;
+                rel.artists = relation.artists;
+            }
+
+            rel.save(error => {
+                if (error) next(error);
+                else next();
+            });
+        });
+    }, error => {
+        if (error) next(error);
+        else next();
+    });
+}
 
 exports.initJob = function (users, next) {
     results = {};
+    updatedUsers = [];
 
     async.eachSeries(users, (user, next) => {
         winston.info(`Getting recently played tracks for user ${user.display_name}.`);
@@ -398,11 +561,29 @@ exports.initJob = function (users, next) {
         });
     }, error => {
         if (error) {
-            winston.error(error.stack);
             next(error);
         } else {
             winston.info('Recent tracks for all users have been updated successfully.');
-            next();
+            winston.info('Updating relations.');
+
+            const start = Date.now();
+
+            async.series([
+                getPairs,
+                normalizeUsers,
+                calculateRelations,
+                updateRelations
+            ], error => {
+                if (error && !error.stop) {
+                    winston.error("It wasn't possible to update relationships between all users.");
+                    next(error);
+                } else {
+                    const elapsed = (Date.now() - start) / 1000;
+
+                    winston.info(`Relations updated successfully in approximately ${elapsed} seconds.`);
+                    next();
+                }
+            });
         }
     });
 }
