@@ -516,6 +516,7 @@ const updateRelations = function (next) {
             else {
                 rel.affinity = relation.affinity;
                 rel.genres = relation.genres;
+                rel.artists = relation.artists;
             }
 
             rel.save(error => {
