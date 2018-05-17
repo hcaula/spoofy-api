@@ -3,6 +3,11 @@ const { searchByField } = require('./util');
 exports.calculateRelation = function (user_1, user_2) {
     const limit = 50;
     const searches = ['genre', 'artist'];
+
+    /* Weight the share metas. If we want that the shared artists have more
+    influence than the shared genres, we set to a higher multiplier */
+    const multipliers = [1, 2]
+
     let affinity = 0;
     let shared = {genres: [], artists: []}
 
@@ -29,7 +34,7 @@ exports.calculateRelation = function (user_1, user_2) {
         const concats = concatened[meta];
 
         let relation = relationByMeta(metas, cuts, concats, searches[index]);
-        affinity += relation.affinity;
+        affinity += relation.affinity * multipliers[index];
         shared[meta] = relation.shared;
 
         index++;
