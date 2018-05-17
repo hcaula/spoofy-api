@@ -87,7 +87,8 @@ configWinston(function () {
                                                     if (error) next(error);
                                                     else {
                                                         count++;
-                                                        next();
+
+                                                        setTimeout(next, 200);
                                                     }
                                                 });
                                             }
