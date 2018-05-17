@@ -298,7 +298,6 @@ const gatherTracksInfo = function (next) {
                 let obj = {
                     name: artist.name,
                     href: artist.href,
-                    id: artist.id,
                     genres: [],
                     images: []
                 };
@@ -312,6 +311,7 @@ const gatherTracksInfo = function (next) {
                         height: a.height,
                         url: a.url
                     }));
+                    obj.popularity = ar.popularity;
                 } else obj.images = saveableTrack.album.images;
 
                 saveableTrack.artists.push(obj);

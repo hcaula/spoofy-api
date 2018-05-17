@@ -8,61 +8,47 @@ let start = Date.now();
 const winston = require('winston');
 const async = require('async');
 
-require('../app/models/user')();
-require('../app/models/user-track')();
-require('../app/models/track')();
+require('../app/models/relation')();
 require('../app/models/play')();
+require('../app/models/user')();
+require('../app/models/track')();
 
 const configWinston = require('../config/winston').configWinston;
 const initMongoose = require('../config/database').initMongoose;
 const initJob = require('../app/lib/jobs').initJob;
+const { request } = require('../app/lib/requests');
+const { searchByField } = require('../app/lib/util');
 
-const User_Track = require('mongoose').model('User_Track');
-const Play = require('mongoose').model('Play');
+const Track = require('mongoose').model('Track');
 
-configWinston(function(){
+configWinston(function () {
     winston.info("Starting updater job.");
 
-    initMongoose(function(error){
-        if(error) winston.error(error.stack);
+    initMongoose(function (error) {
+        if (error) winston.error(error.stack);
         else {
-            User_Track.find({}, function(error, user_tracks){
-                async.eachSeries(user_tracks, function(u_track, next){
-                    async.eachSeries(u_track.played_at, function(date, next){
-                        let play = new Play({
-                            user: u_track.user,
-                            track: u_track.track,
-                             played_at: {
-                                fullDate: date,
-                                year: date.getFullYear(),
-                                day: date.getDay(),
-                                hour: date.getHours(),
-                                minutes: date.getMinutes()
-                            }
-                        });
-
-                        play.save(function(error){
-                            if(error) next(error);
-                            else next();
-                        });
-                    }, function(error){
-                        if(error) {
-                            winston.error(error.stack);
-                            process.exit(0);
-                        } else next();
+            let artists = [];
+            winston.info('Getting tracks for DB.');
+            Track.find({}, (error, tracks) => {
+                tracks.forEach(t => {
+                    t.artists.forEach(a => {
+                        if(!artists.includes(a.name)) artists.push(a.name);
                     });
-                }, function(error){
-                    if(error) {
-                        winston.error(error.stack);
-                        process.exit(0);
-                    } else {
-                        let elapsed = (Date.now() - start)/1000;
-                        winston.info(`Updater job executed successfully in approximately ${elapsed} seconds.`);
-                        winston.info('Exiting updater execution.');
-                        process.exit(0);
-                    } 
                 });
-            })
+
+                winston.info('Dividing artists by groups of 50.');
+                let mod_artists = [[]];
+                let index = 0;
+                artists.forEach((a, i) => {
+                    if(i % 50 != 0 || i == 0) mod_artists[index].push(a);
+                    else {
+                        mod_artists.push([]);
+                        index++;
+                    }
+                });
+                
+            });
+            
         }
     });
 });

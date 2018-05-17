@@ -13,7 +13,8 @@ module.exports = function() {
                    width: Number,
                    url: String
                }],
-               genres: [String]
+               genres: [String],
+               popularity: Number
            }
         ],
         album: {
