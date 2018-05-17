@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* Change env node here */
-process.env.NODE_ENV = 'local';
+process.env.NODE_ENV = 'production';
 const access_token = "BQBkDFavKpfPX-aqcABrlxshevy7HsOHH6irU-RKYK0uutvJlRha8cdm1uj29mZrZGdwAJnV3UvvkBotm8EQkMi-gxrVlMkdxqCQlSgl9UDXvyuYpKqVX5vcmLN2HCTToAEIrlVXc9zMBwoD8_3FTBoSFiQQDT2hgXSlHiRBi_TFag";
 
 let start = Date.now();
