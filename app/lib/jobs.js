@@ -294,11 +294,31 @@ const gatherTracksInfo = function (next) {
         };
 
         tr.artists.forEach(artist => {
-            saveableTrack.artists.push({
-                name: artist.name,
-                href: artist.href,
-                id: artist.id
-            });
+            try {
+                let obj = {
+                    name: artist.name,
+                    href: artist.href,
+                    id: artist.id,
+                    genres: [],
+                    images: []
+                };
+
+                /* If the artist on the track is the same as the used for genre retrieval,
+                use the images on the request. Otherwise, repeat the album images */
+                if(artist.id == ar.id) {
+                    ar.genres.forEach(g => obj.genres.push(g));
+                    ar.images.forEach(a => obj.images.push({
+                        width: a.width,
+                        height: a.height,
+                        url: a.url
+                    }));
+                } else obj.images = saveableTrack.album.images;
+
+                saveableTrack.artists.push(obj);
+            }
+            catch (e) {
+                next(e);
+            }
         });
 
         saveableTracks.push(saveableTrack);
@@ -394,7 +414,7 @@ const getPairs = function (next) {
                     pairs = pairs.filter(p => (updatedUsers.includes(p[0]) || updatedUsers.includes(p[1])));
 
                     results.pairs = pairs;
-    
+
                     winston.info(`Pairs gathered successfully.`);
                     next();
                 } catch (e) {

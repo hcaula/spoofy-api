@@ -7,7 +7,13 @@ module.exports = function() {
         artists: [
            {
                name: String,
-               href: String
+               href: String,
+               images: [{
+                   height: Number,
+                   width: Number,
+                   url: String
+               }],
+               genres: [String]
            }
         ],
         album: {
