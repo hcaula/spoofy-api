@@ -105,8 +105,39 @@ const updateToken = function (next) {
     }
 }
 
+const getTopTracks = function (next) {
+    const user = results.user;
+    winston.info(`Requesting top listened tracks for user ${user.display_name}.`);
+
+    const token = user.token;
+    const access_token = token.access_token;
+    const type = "tracks";
+    const limit = 50;
+    const term = 'long_term';
+
+    const options = {
+        host: 'api.spotify.com',
+        path: `/v1/me/top/${type}?limit=${limit}&time_range=${term}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${access_token}` }
+    }
+
+    request('https', options, (error, response) => {
+        if (error) {
+            winston.info(error.message);
+            winston.info(error.stack);
+            error.stop = true;
+            next(error);
+        } else {
+            results.tracks = response.items.map(t => { return {track: t, played_at: new Date()}});
+            next();
+        }
+    });
+
+}
+
 /* Request recently played tracks */
-const getRecentlyPlayedTracks = (next) => {
+const getRecentlyPlayedTracks = function (next) {
     winston.info("Requesting recently played tracks.");
 
     const token = results.token;
@@ -305,7 +336,7 @@ const gatherTracksInfo = function (next) {
 
                 /* If the artist on the track is the same as the used for genre retrieval,
                 use the images on the request. Otherwise, repeat the album images */
-                if(artist.id == ar.id) {
+                if (artist.id == ar.id) {
                     ar.genres.forEach(g => obj.genres.push(g));
                     ar.images.forEach(a => obj.images.push({
                         width: a.width,
@@ -606,5 +637,25 @@ exports.initJob = function (users, next) {
                 }
             });
         }
+    });
+}
+
+exports.getTopTracks = function (user, next) {
+    results = { user: user };
+
+    async.series([
+        getTopTracks,
+        getTracksFeatures,
+        getArtists,
+        gatherTracksInfo,
+        saveTracks,
+        createPlays
+    ], error => {
+        if (error && !error.stop) next(error);
+        else if (error && error.stop) {
+            winston.warn(`Couldn't retrieve top tracks for user ${results.user.display_name}.`);
+            winston.warn(error);
+            next();
+        } else next();
     });
 }

@@ -2,7 +2,6 @@ const winston = require('winston');
 const async = require('async');
 
 const Track = require('mongoose').model('Track');
-const Play = require('mongoose').model('Play');
 
 const errors = require('./errors');
 const { getUserPlays, getPlayTracks } = require('./tracks');
