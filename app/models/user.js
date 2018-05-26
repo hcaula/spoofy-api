@@ -22,6 +22,11 @@ module.exports = function() {
             expiration_date: Date,
             refresh_token: String
         },
+        tracks: [{
+            track: String,
+            times_listened: {type: Number, default: 1},
+            played_at: [Date]
+        }],
         role: {type: String, default: "user"}
     });
 
