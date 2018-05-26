@@ -291,7 +291,7 @@ const gatherTracksInfo = function (next) {
         const ft = features[i];
         const ar = artists[i];
 
-        const saveableTrack = {
+        let saveableTrack = {
             _id: tr.id,
             name: tr.name,
             duration_ms: tr.duration_ms,
@@ -304,7 +304,14 @@ const gatherTracksInfo = function (next) {
                 images: tr.album.images,
                 href: tr.uri
             },
-            features: {
+            genres: ar.genres,
+            artists: [],
+
+            played_at: track.played_at
+        };
+
+        if(ft) {
+            saveableTrack.features = {
                 danceability: ft.danceability,
                 energy: ft.energy,
                 key: ft.key,
@@ -317,12 +324,8 @@ const gatherTracksInfo = function (next) {
                 valence: ft.valence,
                 tempo: ft.tempo,
                 time_signature: ft.time_signature,
-            },
-            genres: ar.genres,
-            artists: [],
-
-            played_at: track.played_at
-        };
+            }
+        }
 
         tr.artists.forEach(artist => {
             try {
