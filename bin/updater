@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /* Change env node here */
-process.env.NODE_ENV = 'local';
+process.env.NODE_ENV = 'production';
 
 const winston = require('winston');
 const async = require('async');
