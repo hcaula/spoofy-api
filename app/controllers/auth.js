@@ -108,21 +108,23 @@ const loginOrRegister = function (req, res, next) {
                     winston.info(`A new user has been registered.\nDisplay name: ${user.display_name}\n_id: ${user._id}`);
                     winston.info(`Retrieving top tracks from user ${user.display_name}.`);
 
-                    getTopTracks(u, error => {
+                    winston.info('Starting job for new user.');
+                    initJob([u], error => {
                         if (error) {
                             winston.error(error.stack);
                             res.status(500).json(errors[500]);
-                        } else {
-                            winston.info('Top tracks requested successfully.');
-                            winston.info('Starting job for new user.');
-                            initJob([u], error => {
-                                if (error) {
-                                    winston.error(error.stack);
-                                    res.status(500).json(errors[500]);
-                                } else next();
-                            });
-                        }
+                        } else next();
                     });
+
+                    // getTopTracks(u, error => {
+                    //     if (error) {
+                    //         winston.error(error.stack);
+                    //         res.status(500).json(errors[500]);
+                    //     } else {
+                    //         winston.info('Top tracks requested successfully.');
+
+                    //     }
+                    // });
                 }
             });
         }
