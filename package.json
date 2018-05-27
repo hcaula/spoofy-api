@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "NODE_ENV=development nodemon start",
+    "dev": "npm install && npm start",
     "local": "NODE_ENV=local nodemon start",
     "prod": "nodemon start",
     "start": "nodemon start"

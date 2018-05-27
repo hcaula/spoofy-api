@@ -2,6 +2,6 @@
     "hostname": "spoofyapi.herokuapp.com/",
     "protocol": "https",
     "mongodb": {
-        "uri": "mongodb://localhost/spoofy"
+        "uri": "mongodb://mongo/spoofy"
     }
 }
