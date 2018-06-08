@@ -1,8 +1,6 @@
 const express = require('express');
-const config = require('./config');
 const load = require('express-load');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
 exports.module = function () {
@@ -17,7 +15,7 @@ exports.module = function () {
     app.set('port', port);
 
     /* Allows for better routing - no need to keep adding new routers */
-    load('models', { cwd: 'app' })
+    load('models', { cwd: 'app/v2' })
         .then('controllers')
         .into(app);
 

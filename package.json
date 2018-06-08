@@ -1,11 +1,11 @@
 {
   "name": "spoofy",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A hourly Spotify tracks analyser that retrieves the best songs given a time.",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npm install && npm start",
+    "dev": "NODE_ENV=development nodemon start",
     "local": "NODE_ENV=local nodemon start",
     "prod": "nodemon start",
     "start": "nodemon start"
