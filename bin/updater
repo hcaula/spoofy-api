@@ -1,94 +1,20 @@
 #!/usr/bin/env node
 
 /* Change env node here */
-process.env.NODE_ENV = 'production';
+process.env.NODE_ENV = 'development';
 
 const winston = require('winston');
 const async = require('async');
 
-require('../app/models/relation')();
-require('../app/models/play')();
 require('../app/models/user')();
+require('../app/models/artist')();
 require('../app/models/track')();
 
-const configWinston = require('../config/winston').configWinston;
-const initMongoose = require('../config/database').initMongoose;
+const { configWinston } = require('../config/winston');
+const { initMongoose } = require('../config/database');
+const top_tracks = require('../app/lib/top_tracks');
 
-const Track = require('mongoose').model('Track');
 const User = require('mongoose').model('User');
-const Play = require('mongoose').model('Play');
-
-const updateUsers = function (next) {
-    winston.info('Updating users.');
-    User.find({}, (error, users) => {
-        if (error) next(error);
-        else {
-            async.eachSeries(users, (user, next) => {
-                user.tracks = [];
-                user.save(error => next(error));
-            }, error => next(error));
-        }
-    });
-}
-
-const updateTracks = function (next) {
-    winston.info('Updating tracks');
-
-    let count = 0;
-    Track.find({}, (error, tracks) => {
-        if (error) next(error);
-        else {
-            const total = tracks.length;
-            let saved_users = {};
-
-            User.find({}, (error, users) => {
-                if (error) next(error);
-                else {
-                    users.forEach(u => saved_users[u._id] = []);
-
-                    async.each(tracks, (track, next) => {
-                        Play.find({ track: track._id }, (error, plays) => {
-                            if (error) next(error);
-                            else {
-                                let indexes = {};
-                                plays.forEach(p => {
-
-                                    if (!indexes[p.user]) {
-                                        saved_users[p.user].push({
-                                            track: track._id,
-                                            times_listened: 1,
-                                            played_at: [p.played_at.fullDate]
-                                        });
-
-                                        indexes[p.user] = saved_users[p.user].length - 1;
-                                    } else {
-                                        const index = indexes[p.user];
-
-                                        saved_users[p.user][index].times_listened++;
-                                        saved_users[p.user][index].played_at.push(p.played_at.fullDate);
-                                    }
-                                });
-
-                                count++;
-                                if (count % 100 == 0) winston.info(`Updated track ${count} out of ${total}.`);
-
-                                next();
-                            }
-                        });
-                    }, error => {
-                        if (error) next(error);
-                        else {
-                            async.eachSeries(users, (user, next) => {
-                                user.tracks = saved_users[user._id];
-                                user.save(error => next(error));
-                            }, error => next(error));
-                        }
-                    });
-                }
-            });
-        }
-    })
-}
 
 configWinston(() => {
     winston.info("Starting updater job.");
@@ -98,16 +24,30 @@ configWinston(() => {
             winston.error(error.stack);
             process.exit(1);
         } else {
-            async.series([
-                updateUsers,
-                updateTracks
-            ], error => {
+            User.find({}, (error, user) => {
                 if (error) {
                     winston.error(error.stack);
                     process.exit(1);
                 } else {
-                    winston.info('Updater job completed successfully.');
-                    process.exit(0);
+                    let count = 0;
+                    async.each(users, (user, next) => {
+                        top_tracks(user, error => {
+                            if (error) next(error);
+                            else {
+                                count++;
+                                winston.info(`User ${user.display_name} completed (${count} out of ${users.length}`);
+                                next();
+                            }
+                        });
+                    }, error => {
+                        if (error) {
+                            winston.error(error.stack);
+                            process.exit(1);
+                        } else {
+                            winston.info('Updater job completed successfully.');
+                            process.exit(0);
+                        }
+                    });
                 }
             });
         }

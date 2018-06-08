@@ -56,7 +56,7 @@ const getGenres = function (req, res) {
 }
 
 const requestTop = function (req, res) {
-    top_tracks(req.user, (error, results) => {
+    top_tracks(req.user, error => {
         if (error) {
             winston.error(req.query.error);
             res.status(500).json(errors[500]);
