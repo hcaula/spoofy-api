@@ -3,11 +3,8 @@ const winston = require('winston');
 const app = require('./express').module();
 const config = require('./config');
 
-const protocol = require("http");
-
 exports.initServer = function (next) {
-    const server = app.listen(process.env.PORT || config.port, () => {
-        const port = server.address().port;
+    app.listen(process.env.PORT || config.port, () => {
         winston.info('Express Server configured successfully.');
         next();
     });
