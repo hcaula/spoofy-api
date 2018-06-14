@@ -8,7 +8,7 @@ const User = require('mongoose').model('User');
 const Session = require('mongoose').model('Session');
 
 const errors = require('../lib/errors');
-const { calculateNextWeek } = require('../lib/util');
+const { calculateNextWeek, calculateExpirationDate } = require('../lib/util');
 const { request } = require('../lib/requests');
 
 module.exports = function (app) {
@@ -183,7 +183,9 @@ const refreshToken = function (req, res) {
                         winston.error(err.stack);
                         res.status(500).json(errors[500]);
                     } else {
-                        user.token.access_token = response.access_token;
+                        let token = user.token;
+                        token.access_token = response.access_token;
+                        user.token = token;
                         user.save((error, user) => {
                             if (error) {
                                 winston.error(error.stack);
@@ -195,11 +197,18 @@ const refreshToken = function (req, res) {
                                         res.status(500).json(errors[500]);
                                     } else {
                                         session.token = user.token.access_token;
-                                        session.expiration_date = user.token.expiration_date;
+                                        session.expiration_date = calculateNextWeek();
 
-                                        res.status(200).json({
-                                            message: "Token has been refreshed successfully.",
-                                            token: user.token.access_token
+                                        session.save(error => {
+                                            if (error) {
+                                                winston.error(error.stack);
+                                                res.status(500).json(errors[500]);
+                                            } else {
+                                                res.status(200).json({
+                                                    message: "Token has been refreshed successfully.",
+                                                    token: session.token
+                                                });
+                                            }
                                         });
                                     }
                                 });

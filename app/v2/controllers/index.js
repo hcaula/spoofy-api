@@ -1,5 +1,3 @@
-const express = require('express');
-const app = express();
 const winston = require('winston');
 
 const Session = require('mongoose').model('Session');
@@ -17,21 +15,20 @@ const login = function (req, res) {
     else res.status(200).json({ user: false });
 }
 
-const logout = function(req, res) {
+const logout = function (req, res) {
     if (req.user) {
         Session.remove({ user: req.user._id }, error => {
             if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
             } else {
-                res.status(200).json({
-                    "message": "User logged out successfully."
-                });
+                res.status(200).json({ "message": "User logged out successfully." });
             }
         });
     } else {
         res.status(200).json({
-            "message": "No user was found."
+            "error": "No user was found.",
+            "type": "user_not_found"
         });
     }
 }
