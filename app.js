@@ -18,10 +18,11 @@ async.series([
     configWinston,
     initMongoose,
     initServer
-], function (error) {
+], (error) => {
     if (error) winston.error(error);
     else {
+        const port = process.env.PORT;
         winston.info(`Server is ready to receive API calls on ` + 
-        `${config.protocol}://${config.hostname}${config.port ? `:${config.port}` : ''}`);
+        `${config.protocol}://${config.hostname}${port ? `:${port}` : ''}`);
     }
 });

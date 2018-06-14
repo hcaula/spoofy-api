@@ -11,7 +11,7 @@ exports.module = function () {
     app.use(cors());
 
     /* Sets the port to the one specfied on the config file */
-    const port = (process.env.PORT || 3000)
+    const port = process.env.PORT;
     app.set('port', port);
 
     /* Allows for better routing - no need to keep adding new routers */

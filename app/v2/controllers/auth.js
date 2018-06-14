@@ -1,7 +1,6 @@
 /*
  * Modules
 */
-const config = require('../../../config/config');
 const { encode } = require('base-64');
 const winston = require('winston');
 
@@ -22,10 +21,10 @@ const requestAccessToken = function (req, res, next) {
         res.status(500).json(errors[500]);
     } else {
         const code = req.query.code;
-        const client_id = (process.env.SPOTIFY_CLIENTID || config.spotify.client_id);
-        const client_secret = (process.env.SPOTIFY_CLIENTSECRET || config.spotify.client_secret);
+        const client_id = process.env.SPOTIFY_CLIENTID;
+        const client_secret = process.env.SPOTIFY_CLIENTSECRET;
         const encoded = encode(`${client_id}:${client_secret}`);
-        const redirect_uri = (process.env.SPOTIFY_REDIRECTURI || config.spotify.redirect_uri);
+        const redirect_uri = process.env.SPOTIFY_REDIRECTURI;
 
         const body = {
             'grant_type': 'authorization_code',
@@ -138,7 +137,7 @@ const startSession = function (req, res, next) {
             if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
-            } else res.redirect((process.env.CLIENT_URL || config.client.url) + `?token=${token.access_token}&new=${req.isNew}`);
+            } else res.redirect(process.env.CLIENT_URL + `?token=${token.access_token}&new=${req.isNew}`);
         });
     });
 }

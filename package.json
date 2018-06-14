@@ -4,11 +4,8 @@
   "description": "A hourly Spotify tracks analyser that retrieves the best songs given a time.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "NODE_ENV=development nodemon start",
-    "local": "NODE_ENV=local nodemon start",
-    "prod": "nodemon start",
-    "start": "nodemon start"
+    "dev": "nodemon start",
+    "start": "node app.js"
   },
   "keywords": [
     "data-mining",

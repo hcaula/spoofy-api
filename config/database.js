@@ -1,9 +1,8 @@
 const winston = require('winston');
 const mongoose = require('mongoose');
-const config = require('./config');
 
 exports.initMongoose = function (next) {
-    const uri = (process.env.MONGODB_URI || config.mongodb.uri);
+    const uri = process.env.MONGODB_URI;
 
     mongoose.connect(uri);
 
