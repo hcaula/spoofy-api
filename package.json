@@ -4,7 +4,7 @@
   "description": "A hourly Spotify tracks analyser that retrieves the best songs given a time.",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon start",
+    "dev": "npm install && nodemon app.js",
     "start": "node app.js"
   },
   "keywords": [
@@ -24,10 +24,12 @@
     "express": "^4.16.2",
     "express-load": "^1.1.16",
     "mongoose": "^5.0.9",
-    "nodemon": "^1.17.1",
     "querystring": "^0.2.0",
     "simple-statistics": "^5.2.1",
     "urlencode": "^1.1.0",
     "winston": "^2.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.17.1"
   }
 }
