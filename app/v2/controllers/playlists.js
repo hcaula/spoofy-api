@@ -36,17 +36,18 @@ const getUsers = function(req, res, next) {
 
 const sharedGenres = function(req, res) {
     const users = req.users;
-    const intensities = (req.query.intensities ? req.query.intensities.split(',') : [].fill.call({ length: users.length }, 1));
+    const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
     
     const genres = [], artists = [], tracks = [];
     users.forEach((user, i) => {
+        const multiplier = multipliers[i];
         user.genres.forEach(g => {
             const index = searchByField(g.name, "name", genres);
-            if (index > -1) genres[index].weight += g.weight * intensities[i];
+            if (index > -1) genres[index].weight += g.weight * multiplier;
             else {
                 genres.push({
                     name: g.name,
-                    weight: g.weight * intensities[i]
+                    weight: g.weight * multiplier
                 });
             }
         });
