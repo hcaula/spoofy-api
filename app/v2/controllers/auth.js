@@ -147,44 +147,67 @@ const startSession = function (req, res, next) {
 const refreshToken = function (req, res) {
     const refresh_token = req.body.refresh_token;
     const user = req.body.user;
-    
+
     if (!refresh_token) res.status(400).json(errors[400]('refresh_token'));
     else if (!user) res.status(400).json(errors[400]('user'));
     else {
-        User.find({"token.refresh_token": refresh_token, _id: user}, (error, user) => {
+        User.findOne({"token.refresh_token": refresh_token }, (error, user) => {
             if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
+            } else if (!user) {
+                res.status(404).json({
+                    error: "No user with this refresh token and id has been found.",
+                    type: "user_refresh_token_not_found"
+                });
             } else {
-                
-            }
-        })
-        const client_id = process.env.SPOTIFY_CLIENTID;
-        const client_secret = process.env.SPOTIFY_CLIENTSECRET;
-        const encoded = encode(`${client_id}:${client_secret}`);
-    
-        const body = {
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token
-        }
-    
-        const options = {
-            host: 'accounts.spotify.com',
-            path: '/api/token',
-            method: 'POST',
-            headers: { 'Authorization': `Basic ${encoded}` }
-        }
+                const client_id = process.env.SPOTIFY_CLIENTID;
+                const client_secret = process.env.SPOTIFY_CLIENTSECRET;
+                const encoded = encode(`${client_id}:${client_secret}`);
 
-        request('https', options, body, (error, response) => {
-            if (error) {
-                const err = new Error(error);
-                winston.error(error.stack);
-                res.status(500).json(errors[500]);
-            } else {
-                
-                next();
+                const body = {
+                    'grant_type': 'refresh_token',
+                    'refresh_token': refresh_token
+                }
+
+                const options = {
+                    host: 'accounts.spotify.com',
+                    path: '/api/token',
+                    method: 'POST',
+                    headers: { 'Authorization': `Basic ${encoded}` }
+                }
+
+                request('https', options, body, (error, response) => {
+                    if (error) {
+                        const err = new Error(error);
+                        winston.error(err.stack);
+                        res.status(500).json(errors[500]);
+                    } else {
+                        user.token.access_token = response.access_token;
+                        user.save((error, user) => {
+                            if (error) {
+                                winston.error(error.stack);
+                                res.status(500).json(errors[500]);
+                            } else {
+                                Session.findOne({ user: user._id }, (error, session) => {
+                                    if (error) {
+                                        winston.error(error.stack);
+                                        res.status(500).json(errors[500]);
+                                    } else {
+                                        session.token = user.token.access_token;
+                                        session.expiration_date = user.token.expiration_date;
+
+                                        res.status(200).json({
+                                            message: "Token has been refreshed successfully.",
+                                            token: user.token.access_token
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
-
     }
 }
