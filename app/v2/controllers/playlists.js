@@ -27,7 +27,7 @@ const getUsers = function(req, res, next) {
             });
         }, error => {
             if (error) {
-                winston.error(req.query.error);
+                winston.error(error.stack);
                 res.status(500).json(errors[500]);
             } else next();
         });

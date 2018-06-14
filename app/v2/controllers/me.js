@@ -34,7 +34,7 @@ const getTracks = function (req, res) {
     const tracks = req.user.tracks;
     Track.find({ _id: { $in: tracks } }, (error, tracks) => {
         if (error) {
-            winston.error(req.query.error);
+            winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else res.status(200).json({ tracks: tracks });
     });
@@ -44,7 +44,7 @@ const getArtists = function (req, res) {
     const artists = req.user.artists;
     Artist.find({ _id: { $in: artists } }, (error, artists) => {
         if (error) {
-            winston.error(req.query.error);
+            winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else res.status(200).json({ artists: artists });
     });
@@ -58,7 +58,7 @@ const getGenres = function (req, res) {
 const requestTop = function (req, res) {
     top_tracks(req.user, error => {
         if (error) {
-            winston.error(req.query.error);
+            winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else res.status(200).json({ message: "Requested user's top tracks, artists and genres successfully." });
     });

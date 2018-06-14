@@ -13,6 +13,7 @@ const { request } = require('../lib/requests');
 
 module.exports = function (app) {
     app.get('/api/v2/callback', requestAccessToken, requestUserData, loginOrRegister, startSession);
+    app.post('/api/v2/token/refresh', refreshToken);
 }
 
 const requestAccessToken = function (req, res, next) {
@@ -140,4 +141,50 @@ const startSession = function (req, res, next) {
             } else res.redirect(process.env.CLIENT_URL + `?token=${token.access_token}&new=${req.isNew}`);
         });
     });
+}
+
+/* Request new token using the refresh token */
+const refreshToken = function (req, res) {
+    const refresh_token = req.body.refresh_token;
+    const user = req.body.user;
+    
+    if (!refresh_token) res.status(400).json(errors[400]('refresh_token'));
+    else if (!user) res.status(400).json(errors[400]('user'));
+    else {
+        User.find({"token.refresh_token": refresh_token, _id: user}, (error, user) => {
+            if (error) {
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
+                
+            }
+        })
+        const client_id = process.env.SPOTIFY_CLIENTID;
+        const client_secret = process.env.SPOTIFY_CLIENTSECRET;
+        const encoded = encode(`${client_id}:${client_secret}`);
+    
+        const body = {
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token
+        }
+    
+        const options = {
+            host: 'accounts.spotify.com',
+            path: '/api/token',
+            method: 'POST',
+            headers: { 'Authorization': `Basic ${encoded}` }
+        }
+
+        request('https', options, body, (error, response) => {
+            if (error) {
+                const err = new Error(error);
+                winston.error(error.stack);
+                res.status(500).json(errors[500]);
+            } else {
+                
+                next();
+            }
+        });
+
+    }
 }

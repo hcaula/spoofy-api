@@ -15,7 +15,7 @@ module.exports = function (app) {
 const getUsers = function (req, res) {
     User.find({}, (error, users) => {
         if (error) {
-            winston.error(req.query.error);
+            winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
             let ret_users = [];
@@ -38,7 +38,7 @@ const getUsers = function (req, res) {
                 });
             }, error => {
                 if (error) {
-                    winston.error(req.query.error);
+                    winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else res.status(200).json({ users: ret_users });
             });
