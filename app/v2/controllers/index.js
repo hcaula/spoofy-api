@@ -7,12 +7,15 @@ const errors = require('../lib/errors');
 
 module.exports = function (app) {
     app.get('/login', auth, login);
-    app.get('/logout', auth, logout);
+    app.delete('/logout', auth, logout);
 }
 
 const login = function (req, res) {
     if (req.user) res.status(200).json({ user: req.user });
-    else res.status(200).json({ user: false });
+    else res.status(400).json({ 
+        error: "User not found",
+        type: "user_not_found"
+     });
 }
 
 const logout = function (req, res) {
