@@ -10,9 +10,10 @@ const { searchByField } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v2/playlists/genres', auth, getUsers, sharedGenres);
+    app.get('/api/v2/playlists/artists', auth, getUsers, sharedArtists);
 }
 
-const getUsers = function(req, res, next) {
+const getUsers = function (req, res, next) {
     const users = (req.query.users ? req.query.users.split(',') : []);
     if (!users.length) res.status(400).json(errors[400]('users'));
     else {
@@ -34,11 +35,11 @@ const getUsers = function(req, res, next) {
     }
 }
 
-const sharedGenres = function(req, res) {
+const sharedGenres = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
-    
-    const genres = [], artists = [], tracks = [];
+
+    const genres = [];
     users.forEach((user, i) => {
         const multiplier = multipliers[i];
         user.genres.forEach(g => {
@@ -55,6 +56,30 @@ const sharedGenres = function(req, res) {
 
     genres.sort((a, b) => b.weight - a.weight);
 
-    res.status(200).json({genres: genres});
+    res.status(200).json({ genres: genres });
 
+}
+
+const sharedArtists = function (req, res) {
+    const users = req.users;
+    const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
+
+    const artists = [];
+    users.forEach((user, i) => {
+        const multiplier = multipliers[i];
+        user.artists.forEach(a => {
+            const index = searchByField(a.name, "name", artists);
+            if (index > -1) artists[index].weight += multiplier;
+            else {
+                artists.push({
+                    name: a.name,
+                    weight: multiplier
+                });
+            }
+        });
+    });    
+
+    artists.sort((a, b) => b.weight - a.weight);
+
+    res.status(200).json({ artists: artists });
 }

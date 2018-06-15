@@ -151,7 +151,7 @@ const refreshToken = function (req, res) {
     if (!refresh_token) res.status(400).json(errors[400]('refresh_token'));
     else if (!user) res.status(400).json(errors[400]('user'));
     else {
-        User.findOne({"token.refresh_token": refresh_token }, (error, user) => {
+        User.findOne({ "token.refresh_token": refresh_token }, (error, user) => {
             if (error) {
                 winston.error(error.stack);
                 res.status(500).json(errors[500]);
@@ -195,22 +195,27 @@ const refreshToken = function (req, res) {
                                     if (error) {
                                         winston.error(error.stack);
                                         res.status(500).json(errors[500]);
+                                    } else if (!session) {
+                                        session = new Session({
+                                            token: token.access_token,
+                                            user: user._id,
+                                            expiration_date: calculateNextWeek()
+                                        });
                                     } else {
                                         session.token = user.token.access_token;
                                         session.expiration_date = calculateNextWeek();
-
-                                        session.save(error => {
-                                            if (error) {
-                                                winston.error(error.stack);
-                                                res.status(500).json(errors[500]);
-                                            } else {
-                                                res.status(200).json({
-                                                    message: "Token has been refreshed successfully.",
-                                                    token: session.token
-                                                });
-                                            }
-                                        });
                                     }
+                                    session.save(error => {
+                                        if (error) {
+                                            winston.error(error.stack);
+                                            res.status(500).json(errors[500]);
+                                        } else {
+                                            res.status(200).json({
+                                                message: "Token has been refreshed successfully.",
+                                                token: session.token
+                                            });
+                                        }
+                                    });
                                 });
                             }
                         });
