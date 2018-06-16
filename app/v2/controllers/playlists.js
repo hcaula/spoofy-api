@@ -2,8 +2,6 @@ const winston = require('winston');
 const async = require('async');
 
 const User = require('mongoose').model('User');
-const Artist = require('mongoose').model('Artist');
-const Track = require('mongoose').model('Track');
 
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
