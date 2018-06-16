@@ -1,6 +1,6 @@
-
 const winston = require('winston');
 
+const User = require('mongoose').model('User');
 const Track = require('mongoose').model('Track');
 const Artist = require('mongoose').model('Artist');
 
@@ -11,6 +11,8 @@ const top_tracks = require('../lib/top_tracks');
 
 module.exports = function (app) {
     app.get('/api/v2/me', auth, getUser);
+    app.put('/api/v2/me/update', auth, updateUser);
+
     app.get('/api/v2/me/tracks/', auth, getTracks);
     app.get('/api/v2/me/artists/', auth, getArtists);
     app.get('/api/v2/me/genres/', auth, getGenres);
@@ -29,6 +31,11 @@ const getUser = function (req, res) {
         images: user.images
     });
 }
+
+const updateUser = function (req, res) {
+    
+}
+
 
 const getTracks = function (req, res) {
     const tracks = req.user.tracks;
