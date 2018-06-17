@@ -40,7 +40,14 @@ const getUsers = function (req, res, next) {
 const sharedGenres = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
-    const genres = getSharedGenres(users, multipliers);
+    const seeded = req.query.seeded;
+
+    let genres = getSharedGenres(users, multipliers);
+
+    if (seeded) {
+        const avaiable_seeds = require('../../../config/jsons/seeds');
+        genres = genres.filter(g => avaiable_seeds.includes(g.name));
+    }
 
     res.status(200).json({ genres: genres });
 
