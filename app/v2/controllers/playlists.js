@@ -15,6 +15,7 @@ module.exports = function (app) {
 
     app.get('/api/v2/playlists/artists', auth, getUsers, artistsPlaylist);
     app.get('/api/v2/playlists/seeds', auth, getUsers, seedsPlaylist);
+    app.get('/api/v2/playlists/seeds/artists', auth, getUsers, seedArtists);
 }
 
 const getUsers = function (req, res, next) {
@@ -177,6 +178,52 @@ const seedsPlaylist = function (req, res) {
             res.status(200).json({ genres: genres.map(g => g.name), tracks: tracks });
         }
     });
+}
 
+const seedArtists = function (req, res) {
+    const users = req.users;
+    const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
+    const limit = 25;
+    const access_token = req.user.token.access_token;
+
+    getShared('artists', users, multipliers, (error, artists) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+            let artistsStr = '';
+            artists = artists.slice(0, 5);
+            artists.forEach(a => artistsStr += a.id + ',');
+        
+            const path = `/v1/recommendations/?limit=${limit}&seed_artists=${artistsStr}`;
+        
+            const options = {
+                host: 'api.spotify.com',
+                path: path,
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${access_token}` }
+            }
+        
+            let tracks = [];
+            request('https', options, (error, response) => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    response.tracks.forEach(t => tracks.push({
+                        name: t.name,
+                        artist: t.artists[0].name,
+                        album: t.album.name,
+                        image: t.album.images[0].url,
+                        href: t.href,
+                        uri: t.uri,
+                        id: t.id
+                    }));
+        
+                    res.status(200).json({ artists: artists.map(a => a.name), tracks: tracks });
+                }
+            });
+        }
+    });
 
 }
