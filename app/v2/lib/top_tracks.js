@@ -23,18 +23,18 @@ const requestTop = function (next) {
     }
 
     async.eachSeries(types, (type, next) => {
-        options.path = `/v1/me/top/${type}?limit=${limit}&time_range=${term}`,
-            request('https', options, (error, response) => {
-                if (error) {
-                    winston.info(error.message);
-                    winston.info(error.stack);
-                    error.stop = true;
-                    next(error);
-                } else {
-                    results[type] = response.items;
-                    next();
-                }
-            });
+        options.path = `/v1/me/top/${type}?limit=${limit}&time_range=${term}`;
+        request('https', options, (error, response) => {
+            if (error) {
+                winston.info(error.message);
+                winston.info(error.stack);
+                error.stop = true;
+                next(error);
+            } else {
+                results[type] = response.items;
+                next();
+            }
+        });
     }, error => {
         if (error) next(error);
         else {
