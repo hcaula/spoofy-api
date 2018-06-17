@@ -6,6 +6,9 @@ const Track = require('mongoose').model('Track');
 const { searchByField } = require('../lib/util');
 
 exports.getShared = function (type, users, multipliers, next) {
+    if (multipliers.length != users.length) {
+        multipliers = [].fill.call({ length: users.length }, 1);
+    }
     const medias = [];
     users.forEach((user, i) => {
         const u_multiplier = multipliers[i];
@@ -27,6 +30,7 @@ exports.getShared = function (type, users, multipliers, next) {
     async.each(medias, (m, next) => {
         Model.findById(m.id, (error, media) => {
             if (error) next(error);
+            else if (!media) next();
             else {
                 new_medias.push({
                     id: m.id,
@@ -46,6 +50,9 @@ exports.getShared = function (type, users, multipliers, next) {
 }
 
 exports.getSharedGenres = function(users, multipliers) {
+    if (multipliers.length != users.length) {
+        multipliers = [].fill.call({ length: users.length }, 1);
+    }
     const genres = [];
     users.forEach((user, i) => {
         const multiplier = multipliers[i];
