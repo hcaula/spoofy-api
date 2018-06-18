@@ -2,10 +2,12 @@ const winston = require('winston');
 const async = require('async');
 
 const User = require('mongoose').model('User');
+const Artist = require('mongoose').model('Artist');
 
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
 const { getShared, getSharedGenres } = require('../lib/shared');
+const { generateSeedsPlaylist } = require('../lib/playlists');
 const { request } = require('../lib/requests');
 
 module.exports = function (app) {
@@ -14,8 +16,8 @@ module.exports = function (app) {
     app.get('/api/v2/playlists/shared/tracks', auth, getUsers, sharedTracks);
 
     app.get('/api/v2/playlists/artists', auth, getUsers, artistsPlaylist);
-    app.get('/api/v2/playlists/seeds', auth, getUsers, seedsPlaylist);
-    app.get('/api/v2/playlists/seeds/artists', auth, getUsers, seedArtists);
+    app.get('/api/v2/playlists/seeds/genres', auth, getUsers, seedGenrePlaylist);
+    app.get('/api/v2/playlists/seeds/artists', auth, getUsers, seedArtistPlaylist);
 }
 
 const getUsers = function (req, res, next) {
@@ -47,13 +49,14 @@ const sharedGenres = function (req, res) {
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
     const seeded = req.query.seeded;
 
-    let genres = getSharedGenres(users, multipliers);
-
-    if (seeded) {
-        const avaiable_seeds = require('../../../config/jsons/seeds');
-        genres = genres.filter(g => avaiable_seeds.includes(g.name));
+    const options = {
+        users: users,
+        multipliers: multipliers,
+        seeded: seeded,
+        type: "genres"
     }
 
+    const genres = getShared(options);
     res.status(200).json({ genres: genres });
 
 }
@@ -62,24 +65,29 @@ const sharedArtists = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
-    getShared("artists", users, multipliers, (error, artists) => {
-        if (error) {
-            winston.error(error.stack);
-            res.status(500).json(errors[500]);
-        } else res.status(200).json({ artists: artists });
-    });
+    const options = {
+        users: users,
+        multipliers: multipliers,
+        type: "artists"
+    }
+
+    const artists = getShared(options);
+    res.status(200).json({ artists: artists });
+
 }
 
 const sharedTracks = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
-    getShared("tracks", users, multipliers, (error, tracks) => {
-        if (error) {
-            winston.error(error.stack);
-            res.status(500).json(errors[500]);
-        } else res.status(200).json({ tracks: tracks });
-    });
+    const options = {
+        users: users,
+        multipliers: multipliers,
+        type: "tracks"
+    }
+
+    const tracks = getShared(options);
+    res.status(200).json({ tracks: tracks });
 }
 
 const artistsPlaylist = function (req, res) {
@@ -136,51 +144,26 @@ const artistsPlaylist = function (req, res) {
     });
 }
 
-const seedsPlaylist = function (req, res) {
+const seedGenrePlaylist = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
-    const limit = 25;
-    const access_token = req.user.token.access_token;
-    const avaiable_seeds = require('../../../config/jsons/seeds');
-
-    let genres = getSharedGenres(users, multipliers);
-    genres = genres.filter(g => avaiable_seeds.includes(g.name));
-    genres = genres.slice(0, 5);
-
-    let genresStr = '';
-    genres.forEach(g => genresStr += g.name + ',');
-
-    const path = `/v1/recommendations/?limit=${limit}&seed_genres=${genresStr}`;
 
     const options = {
-        host: 'api.spotify.com',
-        path: path,
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${access_token}` }
+        seed_type: 'genres',
+        users: users,
+        multipliers: multipliers,
+        access_token: req.user.token.access_token
     }
 
-    let tracks = [];
-    request('https', options, (error, response) => {
+    generateSeedsPlaylist(options, (error, results) => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
-        } else {
-            response.tracks.forEach(t => tracks.push({
-                name: t.name,
-                artist: t.artists[0].name,
-                album: t.album.name,
-                image: t.album.images[0].url,
-                href: t.href,
-                uri: t.uri,
-                id: t.id
-            }));
-
-            res.status(200).json({ genres: genres.map(g => g.name), tracks: tracks });
-        }
+        } else res.status(200).json(results);
     });
 }
 
-const seedArtists = function (req, res) {
+const seedArtistPlaylist = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
     const limit = 25;
@@ -194,16 +177,16 @@ const seedArtists = function (req, res) {
             let artistsStr = '';
             artists = artists.slice(0, 5);
             artists.forEach(a => artistsStr += a.id + ',');
-        
+
             const path = `/v1/recommendations/?limit=${limit}&seed_artists=${artistsStr}`;
-        
+
             const options = {
                 host: 'api.spotify.com',
                 path: path,
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${access_token}` }
             }
-        
+
             let tracks = [];
             request('https', options, (error, response) => {
                 if (error) {
@@ -219,7 +202,7 @@ const seedArtists = function (req, res) {
                         uri: t.uri,
                         id: t.id
                     }));
-        
+
                     res.status(200).json({ artists: artists.map(a => a.name), tracks: tracks });
                 }
             });
