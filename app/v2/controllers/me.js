@@ -34,18 +34,20 @@ const getUser = function (req, res) {
 
 const updateUser = function (req, res) {
     const display_name = req.body.display_name;
-    const image = req.body.image;
+    const image_url = req.body.image_url;
     let user = req.user;
 
     if (display_name) user.display_name = display_name;
-    if (image) user.images[0] = image;
+    if (image_url) user.images[0].url = image_url;
 
     user.save((error, user) => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
-        }
-        res.status(200).json(user);
+        } else res.status(200).json({
+            message: "User was updated successfully.",
+            user: user
+        });
     });
 }
 
