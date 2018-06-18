@@ -11,7 +11,7 @@ const top_tracks = require('../lib/top_tracks');
 
 module.exports = function (app) {
     app.get('/api/v2/me', auth, getUser);
-    app.put('/api/v2/me/update', auth, updateUser);
+    app.patch('/api/v2/me/update', auth, updateUser);
 
     app.get('/api/v2/me/tracks/', auth, getTracks);
     app.get('/api/v2/me/artists/', auth, getArtists);
@@ -33,7 +33,20 @@ const getUser = function (req, res) {
 }
 
 const updateUser = function (req, res) {
-    
+    const display_name = req.body.display_name;
+    const image = req.body.image;
+    let user = req.user;
+
+    if (display_name) user.display_name = display_name;
+    if (image) user.images[0] = image;
+
+    user.save((error, user) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        }
+        res.status(200).json(user);
+    });
 }
 
 
