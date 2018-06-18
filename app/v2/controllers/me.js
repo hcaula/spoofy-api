@@ -34,8 +34,12 @@ const getUser = function (req, res) {
 
 const updateUser = function (req, res) {
     const display_name = req.body.display_name;
+    const image = req.body.image;
     let user = req.user;
-    user.display_name = display_name;
+
+    if (display_name) user.display_name = display_name;
+    if (image) user.images[0] = image;
+
     user.save((error, user) => {
         if (error) {
             winston.error(error.stack);
