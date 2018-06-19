@@ -149,7 +149,7 @@ const seedGenrePlaylist = function (req, res) {
 const seedArtistPlaylist = function (req, res) {
     const users = req.users;
     const min_popularity = (req.query.min_popularity || 0);
-    const max_popularity = (req.query.max_popularity || 0);
+    const max_popularity = (req.query.max_popularity || 100);
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
     const options = {
