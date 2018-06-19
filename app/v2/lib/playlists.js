@@ -56,7 +56,7 @@ exports.generateSeedsPlaylist = function (options, next) {
                 });
             });
 
-            let results = { tracks: tracks };
+            let results = { playlist: tracks };
             results[type] = media;
 
             next(null, results);

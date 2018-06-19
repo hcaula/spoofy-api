@@ -3,6 +3,7 @@ const async = require('async');
 
 const User = require('mongoose').model('User');
 const Artist = require('mongoose').model('Artist');
+const Track = require('mongoose').model('Track');
 
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
@@ -16,8 +17,10 @@ module.exports = function (app) {
     app.get('/api/v2/playlists/shared/tracks', auth, getUsers, sharedTracks);
 
     app.get('/api/v2/playlists/artists', auth, getUsers, artistsPlaylist);
+
     app.get('/api/v2/playlists/seeds/genres', auth, getUsers, seedGenrePlaylist);
     app.get('/api/v2/playlists/seeds/artists', auth, getUsers, seedArtistPlaylist);
+    app.get('/api/v2/playlists/seeds/tracks', auth, getUsers, seedTracksPlaylist);
 }
 
 const getUsers = function (req, res, next) {
@@ -123,7 +126,7 @@ const artistsPlaylist = function (req, res) {
 const seedGenrePlaylist = function (req, res) {
     const users = req.users;
     const min_popularity = (req.query.min_popularity || 0);
-    const max_popularity = (req.query.max_popularity || 0);
+    const max_popularity = (req.query.max_popularity || 100);
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
     const options = {
@@ -169,6 +172,39 @@ const seedArtistPlaylist = function (req, res) {
                     res.status(500).json(errors[500]);
                 } else {
                     results.artists = artists.map(a => a.name);
+                    res.status(200).json(results);
+                }
+            });
+        }
+    });
+}
+
+const seedTracksPlaylist = function (req, res) {
+    const users = req.users;
+    const min_popularity = (req.query.min_popularity || 0);
+    const max_popularity = (req.query.max_popularity || 100);
+    const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
+
+    const options = {
+        type: 'tracks',
+        users: users,
+        multipliers: multipliers,
+        access_token: req.user.token.access_token,
+        min_popularity: min_popularity,
+        max_popularity: max_popularity
+    }
+
+    generateSeedsPlaylist(options, (error, results) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else {
+            Track.find({ _id: { $in: results.tracks.map(a => a.id) } }, (error, tracks) => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    results.tracks = tracks.map(t => t.name);
                     res.status(200).json(results);
                 }
             });
