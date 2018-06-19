@@ -92,54 +92,52 @@ const sharedTracks = function (req, res) {
 
 const artistsPlaylist = function (req, res) {
     const users = req.users;
+    const access_token = req.user.token.access_token;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
     const top_artists = 10;
     const top_tracks = 5;
 
-    getShared('artists', users, multipliers, (error, artists) => {
+    const artists = getShared({
+        users: users,
+        multipliers: multipliers,
+        type: "artists"
+    });
+
+    let tracks = [];
+    async.each(artists.splice(0, top_artists), (artist, next) => {
+
+        const options = {
+            host: 'api.spotify.com',
+            path: `/v1/artists/${artist.id}/top-tracks?country=BR`,
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${access_token}` }
+        }
+
+        request('https', options, (error, response) => {
+            if (error) next(error);
+            else {
+                response.tracks = response.tracks.slice(0, top_tracks);
+                response.tracks.forEach(t => tracks.push({
+                    name: t.name,
+                    artist: t.artists[0].name,
+                    album: t.album.name,
+                    image: t.album.images[0].url,
+                    href: t.href,
+                    uri: t.uri,
+                    id: t.id,
+                    weight: artist.weight
+                }));
+
+                next();
+            }
+        });
+    }, error => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            const access_token = req.user.token.access_token;
-            let tracks = [];
-            async.each(artists.splice(0, top_artists), (artist, next) => {
-
-                const options = {
-                    host: 'api.spotify.com',
-                    path: `/v1/artists/${artist.id}/top-tracks?country=BR`,
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${access_token}` }
-                }
-
-                request('https', options, (error, response) => {
-                    if (error) next(error);
-                    else {
-                        response.tracks = response.tracks.slice(0, top_tracks);
-                        response.tracks.forEach(t => tracks.push({
-                            name: t.name,
-                            artist: t.artists[0].name,
-                            album: t.album.name,
-                            image: t.album.images[0].url,
-                            href: t.href,
-                            uri: t.uri,
-                            id: t.id,
-                            weight: artist.weight
-                        }));
-
-                        next();
-                    }
-                });
-
-            }, error => {
-                if (error) {
-                    winston.error(error.stack);
-                    res.status(500).json(errors[500]);
-                } else {
-                    tracks.sort((a, b) => b.weight - a.weight);
-                    res.status(200).json({ tracks: tracks });
-                }
-            });
+            tracks.sort((a, b) => b.weight - a.weight);
+            res.status(200).json({ tracks: tracks });
         }
     });
 }
@@ -149,7 +147,7 @@ const seedGenrePlaylist = function (req, res) {
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
     const options = {
-        seed_type: 'genres',
+        type: 'genres',
         users: users,
         multipliers: multipliers,
         access_token: req.user.token.access_token
@@ -166,47 +164,28 @@ const seedGenrePlaylist = function (req, res) {
 const seedArtistPlaylist = function (req, res) {
     const users = req.users;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
-    const limit = 25;
-    const access_token = req.user.token.access_token;
 
-    getShared('artists', users, multipliers, (error, artists) => {
+    const options = {
+        type: 'artists',
+        users: users,
+        multipliers: multipliers,
+        access_token: req.user.token.access_token
+    }
+
+    generateSeedsPlaylist(options, (error, results) => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            let artistsStr = '';
-            artists = artists.slice(0, 5);
-            artists.forEach(a => artistsStr += a.id + ',');
-
-            const path = `/v1/recommendations/?limit=${limit}&seed_artists=${artistsStr}`;
-
-            const options = {
-                host: 'api.spotify.com',
-                path: path,
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${access_token}` }
-            }
-
-            let tracks = [];
-            request('https', options, (error, response) => {
+            Artist.find({ _id: { $in: results.artists.map(a => a.id) } }, (error, artists) => {
                 if (error) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    response.tracks.forEach(t => tracks.push({
-                        name: t.name,
-                        artist: t.artists[0].name,
-                        album: t.album.name,
-                        image: t.album.images[0].url,
-                        href: t.href,
-                        uri: t.uri,
-                        id: t.id
-                    }));
-
-                    res.status(200).json({ artists: artists.map(a => a.name), tracks: tracks });
+                    results.artists = artists.map(a => a.name);
+                    res.status(200).json(results);
                 }
             });
         }
     });
-
 }
