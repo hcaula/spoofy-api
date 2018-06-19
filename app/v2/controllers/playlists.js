@@ -122,13 +122,17 @@ const artistsPlaylist = function (req, res) {
 
 const seedGenrePlaylist = function (req, res) {
     const users = req.users;
+    const min_popularity = (req.query.min_popularity || 0);
+    const max_popularity = (req.query.max_popularity || 0);
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
     const options = {
         type: 'genres',
         users: users,
         multipliers: multipliers,
-        access_token: req.user.token.access_token
+        access_token: req.user.token.access_token,
+        min_popularity: min_popularity,
+        max_popularity: max_popularity
     }
 
     generateSeedsPlaylist(options, (error, results) => {
@@ -141,13 +145,17 @@ const seedGenrePlaylist = function (req, res) {
 
 const seedArtistPlaylist = function (req, res) {
     const users = req.users;
+    const min_popularity = (req.query.min_popularity || 0);
+    const max_popularity = (req.query.max_popularity || 0);
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
 
     const options = {
         type: 'artists',
         users: users,
         multipliers: multipliers,
-        access_token: req.user.token.access_token
+        access_token: req.user.token.access_token,
+        min_popularity: min_popularity,
+        max_popularity: max_popularity
     }
 
     generateSeedsPlaylist(options, (error, results) => {

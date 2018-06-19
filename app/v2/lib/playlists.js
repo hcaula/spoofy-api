@@ -8,6 +8,8 @@ exports.generateSeedsPlaylist = function (options, next) {
     const multipliers = options.multipliers;
     const users = options.users;
     const type = options.type;
+    const min_popularity = options.min_popularity;
+    const max_popularity = options.max_popularity;
     const limit = 25;
 
     let media = getShared({
@@ -15,7 +17,6 @@ exports.generateSeedsPlaylist = function (options, next) {
         multipliers: multipliers,
         type: type
     });
-
 
     if (type == 'genres') {
         const available_seeds = require('../../../config/jsons/seeds');
@@ -26,7 +27,10 @@ exports.generateSeedsPlaylist = function (options, next) {
     let media_str = '';
     media.forEach(m => media_str += m.id + ',');
 
-    const path = `/v1/recommendations/?limit=${limit}&seed_${type}=${media_str}`;
+    const path = `/v1/recommendations/?limit=${limit}&`+
+    `seed_${type}=${media_str}&`+
+    `min_popularity=${min_popularity}&`+
+    `max_popularity=${max_popularity}`;
 
     options = {
         host: 'api.spotify.com',
@@ -42,6 +46,7 @@ exports.generateSeedsPlaylist = function (options, next) {
             response.tracks.forEach(t => {
                 tracks.push({
                     name: t.name,
+                    popularity: t.popularity,
                     artist: t.artists[0].name,
                     album: t.album.name,
                     image: t.album.images[0].url,
@@ -90,6 +95,7 @@ exports.mediasPlaylists = function (options, next) {
                 response.tracks = response.tracks.slice(0, top_tracks);
                 response.tracks.forEach(t => tracks.push({
                     name: t.name,
+                    popularity: t.popularity,
                     artist: t.artists[0].name,
                     album: t.album.name,
                     image: t.album.images[0].url,
