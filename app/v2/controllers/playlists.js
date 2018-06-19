@@ -6,8 +6,8 @@ const Artist = require('mongoose').model('Artist');
 
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
-const { getShared, getSharedGenres } = require('../lib/shared');
-const { generateSeedsPlaylist } = require('../lib/playlists');
+const { getShared } = require('../lib/shared');
+const { generateSeedsPlaylist, mediasPlaylists } = require('../lib/playlists');
 const { request } = require('../lib/requests');
 
 module.exports = function (app) {
@@ -94,50 +94,28 @@ const artistsPlaylist = function (req, res) {
     const users = req.users;
     const access_token = req.user.token.access_token;
     const multipliers = (req.query.multipliers ? req.query.multipliers.split(',') : [].fill.call({ length: users.length }, 1));
-    const top_artists = 10;
-    const top_tracks = 5;
 
-    const artists = getShared({
+    const options = {
         users: users,
         multipliers: multipliers,
-        type: "artists"
-    });
+        type: "artists",
+        access_token: access_token
+    }
 
-    let tracks = [];
-    async.each(artists.splice(0, top_artists), (artist, next) => {
-
-        const options = {
-            host: 'api.spotify.com',
-            path: `/v1/artists/${artist.id}/top-tracks?country=BR`,
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${access_token}` }
-        }
-
-        request('https', options, (error, response) => {
-            if (error) next(error);
-            else {
-                response.tracks = response.tracks.slice(0, top_tracks);
-                response.tracks.forEach(t => tracks.push({
-                    name: t.name,
-                    artist: t.artists[0].name,
-                    album: t.album.name,
-                    image: t.album.images[0].url,
-                    href: t.href,
-                    uri: t.uri,
-                    id: t.id,
-                    weight: artist.weight
-                }));
-
-                next();
-            }
-        });
-    }, error => {
+    mediasPlaylists(options, (error, tracks) => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
         } else {
-            tracks.sort((a, b) => b.weight - a.weight);
-            res.status(200).json({ tracks: tracks });
+            let artists = [];
+            tracks.forEach(t => {
+                if (!artists.includes(t.artist)) artists.push(t.artist);
+            });
+
+            res.status(200).json({
+                tracks: tracks,
+                artists: artists
+            });
         }
     });
 }
