@@ -30,7 +30,7 @@ const getUser = function (req, res) {
         email: user.email,
         uri: user.uri,
         href: user.href,
-        images: user.images
+        image: user.image
     });
 }
 
@@ -112,7 +112,7 @@ const getRelations = function (req, res, next) {
                         display_name: user.display_name,
                         href: user.href,
                         uri: user.uri,
-                        images: user.images
+                        image: user.image
                     }
                     if (error) next(error);
                     else {

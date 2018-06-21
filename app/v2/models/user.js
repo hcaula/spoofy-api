@@ -9,11 +9,11 @@ module.exports = function() {
         email: String,
         uri: String,
         href: String,
-        images: [{
+        image: {
             height: Number,
             width: Number,
             url: String
-        }],
+        },
         token: {
             access_token: String,
             token_type: String,

@@ -72,7 +72,7 @@ const requestUserData = function (req, res, next) {
                 email: response.email,
                 uri: response.uri,
                 href: response.href,
-                images: response.images,
+                image: response.images[0],
                 token: req.token
             }
             next();

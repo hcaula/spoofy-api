@@ -28,7 +28,7 @@ const getUser = function (req, res) {
         email: user.email,
         uri: user.uri,
         href: user.href,
-        images: user.images
+        image: user.image
     });
 }
 
@@ -38,7 +38,7 @@ const updateUser = function (req, res) {
     let user = req.user;
 
     if (display_name) user.display_name = display_name;
-    if (image_url) user.images[0].url = image_url;
+    if (image_url) user.image.url = image_url;
 
     user.save((error, user) => {
         if (error) {
