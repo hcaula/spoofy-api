@@ -68,7 +68,8 @@ const requestUserData = function (req, res, next) {
         } else {
             const look_aside_url = 'https://platform-lookaside.fbsbx.com'
             let image = response.images[0];
-            if (image.url.includes(look_aside_url)) image.url = lookAsideConversion(image.url);
+            if (!image) image = { url: "https://www.qualiscare.com/wp-content/uploads/2017/08/default-user.png" };
+            else if (image.url.includes(look_aside_url)) image.url = lookAsideConversion(image.url);
             req.user = {
                 _id: response.id,
                 display_name: (response.display_name || response.id),
