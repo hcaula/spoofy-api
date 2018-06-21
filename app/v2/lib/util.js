@@ -67,6 +67,18 @@ exports.normalize = function (array) {
     return normalized;
 }
 
+exports.lookAsideConversion = function(look_aside_url) {
+    let id = '';
+    let index = look_aside_url.indexOf('asid=') + 5;
+    while (look_aside_url[index] != '&' || index > look_aside_url.length) {
+        id += look_aside_url[index];
+        index += 1;
+    }
+
+    const new_url = `https://graph.facebook.com/${id}/picture?height=200&width=200`;
+    return new_url;
+}
+
 /*
  * Auxiliar functions
 */

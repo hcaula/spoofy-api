@@ -8,7 +8,7 @@ const User = require('mongoose').model('User');
 const Session = require('mongoose').model('Session');
 
 const errors = require('../lib/errors');
-const { calculateNextWeek, calculateExpirationDate } = require('../lib/util');
+const { calculateNextWeek, lookAsideConversion } = require('../lib/util');
 const { request } = require('../lib/requests');
 
 module.exports = function (app) {
@@ -66,13 +66,16 @@ const requestUserData = function (req, res, next) {
             winston.error(new Error(error).stack);
             res.status(500).json(errors[500]);
         } else {
+            const look_aside_url = 'https://platform-lookaside.fbsbx.com'
+            let image = response.images[0];
+            if (image.url.includes(look_aside_url)) image.url = lookAsideConversion(image.url);
             req.user = {
                 _id: response.id,
                 display_name: (response.display_name || response.id),
                 email: response.email,
                 uri: response.uri,
                 href: response.href,
-                image: response.images[0],
+                image: image,
                 token: req.token
             }
             next();
