@@ -10,7 +10,6 @@ const errors = require('../lib/errors');
 const auth = require('../lib/auth');
 const { getShared } = require('../lib/shared');
 const { generateSeedsPlaylist, mediasPlaylists } = require('../lib/playlists');
-const { request } = require('../lib/requests');
 
 module.exports = function (app) {
     app.get('/api/v2/playlists/shared/genres', auth, getUsers, sharedGenres);
@@ -118,9 +117,21 @@ const artistsPlaylist = function (req, res) {
                 if (!artists.includes(t.artist)) artists.push(t.artist);
             });
 
-            res.status(200).json({
-                tracks: tracks,
-                artists: artists
+            const results = {
+                seeds: artists,
+                playlist: tracks,
+                type: "Simple artist mix",
+                multipliers: multipliers
+            }
+
+            savePlaylist(req.user._id, users, results, (error, playlist_id) => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    results._id = playlist_id;
+                    res.status(200).json(results);
+                };
             });
         }
     });
