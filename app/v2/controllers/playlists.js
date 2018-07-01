@@ -4,6 +4,7 @@ const async = require('async');
 const User = require('mongoose').model('User');
 const Artist = require('mongoose').model('Artist');
 const Track = require('mongoose').model('Track');
+const Playlist = require('mongoose').model('Playlist');
 
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
@@ -142,7 +143,23 @@ const seedGenrePlaylist = function (req, res) {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);
-        } else res.status(200).json(results);
+        } else {
+            results.seeds = results.genres.map(g => g.id);
+            results.type = 'Seeded by genres';
+            results.multipliers = multipliers;
+            results.min_popularity = min_popularity;
+            results.max_popularity = max_popularity;
+
+            savePlaylist(req.user._id, users, results, (error, playlist_id) => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else {
+                    results._id = playlist_id;
+                    res.status(200).json(results);
+                };
+            });
+        }
     });
 }
 
@@ -171,8 +188,21 @@ const seedArtistPlaylist = function (req, res) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    results.artists = artists.map(a => a.name);
-                    res.status(200).json(results);
+                    results.seeds = artists.map(a => a.name);
+                    results.type = 'Seeded by artists';
+                    results.multipliers = multipliers;
+                    results.min_popularity = min_popularity;
+                    results.max_popularity = max_popularity;
+
+                    savePlaylist(req.user._id, users, results, (error, playlist_id) => {
+                        if (error) {
+                            winston.error(error.stack);
+                            res.status(500).json(errors[500]);
+                        } else {
+                            results._id = playlist_id;
+                            res.status(200).json(results);
+                        };
+                    });
                 }
             });
         }
@@ -204,10 +234,38 @@ const seedTracksPlaylist = function (req, res) {
                     winston.error(error.stack);
                     res.status(500).json(errors[500]);
                 } else {
-                    results.tracks = tracks.map(t => t.name);
-                    res.status(200).json(results);
+                    results.seeds = tracks.map(t => t.name);
+                    results.type = 'Seeded by tracks';
+                    results.multipliers = multipliers;
+                    results.min_popularity = min_popularity;
+                    results.max_popularity = max_popularity;
+
+                    savePlaylist(req.user._id, users, results, (error, playlist_id) => {
+                        if (error) {
+                            winston.error(error.stack);
+                            res.status(500).json(errors[500]);
+                        } else {
+                            results._id = playlist_id;
+                            res.status(200).json(results);
+                        }
+                    });
                 }
             });
         }
     });
+}
+
+const savePlaylist = function (user, users, results, callback) {
+    let playlist = new Playlist({
+        user: user,
+        tracks: results.playlist,
+        type: results.type,
+        seeds: results.seeds,
+        multipliers: results.multipliers,
+        min_popularity: results.min_popularity,
+        max_popularity: results.max_popularity,
+        users: users
+    });
+
+    playlist.save((error, playlist) => callback(error, playlist._id));
 }
