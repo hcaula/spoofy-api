@@ -10,6 +10,7 @@ const errors = require('../lib/errors');
 const auth = require('../lib/auth');
 const { getShared } = require('../lib/shared');
 const { generateSeedsPlaylist, mediasPlaylists } = require('../lib/playlists');
+const { searchByField } = require('../lib/util');
 
 module.exports = function (app) {
     app.get('/api/v2/playlists/shared/genres', auth, getUsers, sharedGenres);
@@ -270,7 +271,8 @@ const seedTracksPlaylist = function (req, res) {
 
 const registerVote = function (req, res) {
     const playlist_id = req.body.playlist_id;
-    const votes = req.body.votes;
+    const track_id = req.body.track_id;
+    const vote = req.body.vote;
 
     Playlist.findById(playlist_id, (error, playlist) => {
         if (error) {
@@ -282,21 +284,26 @@ const registerVote = function (req, res) {
                 type: "playlist_not_found"
             });
         } else {
-            playlist.tracks.forEach((t, i) => {
-                if (i < votes.length &&
-                    t.id === votes[i].track) playlist.tracks[i].vote = votes[i].vote;
-                else playlist.tracks[i].vote = 0;
-            });
-            playlist.voted = true;
-            playlist.save((error, playlist) => {
-                if (error) {
-                    winston.error(error.stack);
-                    res.status(500).json(errors[500]);
-                } else res.status(200).json({
-                    message: "Votes registered successfully.",
-                    playlist: playlist
+            const index = searchByField(track_id, 'id', playlist.tracks);
+            if (index < 0) {
+                res.status(400).json({
+                    error: "This playlist does not contain this track.",
+                    type: "track_not_on_playlist"
                 });
-            });
+            } else {
+                playlist.tracks[index].vote = vote;
+                playlist.voted = true;
+
+                playlist.save((error, playlist) => {
+                    if (error) {
+                        winston.error(error.stack);
+                        res.status(500).json(errors[500]);
+                    } else res.status(200).json({
+                        message: "Vote registered successfully.",
+                        playlist: playlist
+                    });
+                });
+            }
         }
     });
 }
