@@ -22,6 +22,8 @@ module.exports = function (app) {
     app.get('/api/v2/playlists/seeds/genres', auth, getUsers, seedGenrePlaylist);
     app.get('/api/v2/playlists/seeds/artists', auth, getUsers, seedArtistPlaylist);
     app.get('/api/v2/playlists/seeds/tracks', auth, getUsers, seedTracksPlaylist);
+
+    app.post('/api/v2/playlists/vote', auth, registerVote);
 }
 
 const getUsers = function (req, res, next) {
@@ -250,6 +252,39 @@ const seedTracksPlaylist = function (req, res) {
                         }
                     });
                 }
+            });
+        }
+    });
+}
+
+const registerVote = function (req, res) {
+    const playlist_id = req.body.playlist_id;
+    const votes = req.body.votes;
+
+    Playlist.findById(playlist_id, (error, playlist) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else if (!playlist) {
+            res.status(400).json({
+                error: "No playlist was found with the requested ID.",
+                type: "playlist_not_found"
+            });
+        } else {
+            playlist.tracks.forEach((t, i) => {
+                if (i < votes.length &&
+                    t.id === votes[i].track) playlist.tracks[i].vote = votes[i].vote;
+                else playlist.tracks[i].vote = 0;
+            });
+            playlist.voted = true;
+            playlist.save((error, playlist) => {
+                if (error) {
+                    winston.error(error.stack);
+                    res.status(500).json(errors[500]);
+                } else res.status(200).json({
+                    message: "Votes registered successfully.",
+                    playlist: playlist
+                });
             });
         }
     });
