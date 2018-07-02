@@ -111,7 +111,9 @@ const artistsPlaylist = function (req, res) {
     mediasPlaylists(options, (error, tracks) => {
         if (error) {
             winston.error(error.stack);
-            res.status(500).json(errors[500]);
+            const status = (error.status ? error.status : 500);
+            const message = (error.message ? error.message : errors[500])
+            res.status(status).json({error: message});
         } else {
             let artists = [];
             tracks.forEach(t => {
@@ -156,7 +158,9 @@ const seedGenrePlaylist = function (req, res) {
     generateSeedsPlaylist(options, (error, results) => {
         if (error) {
             winston.error(error.stack);
-            res.status(500).json(errors[500]);
+            const status = (error.status ? error.status : 500);
+            const message = (error.message ? error.message : errors[500])
+            res.status(status).json({error: message});
         } else {
             results.seeds = results.genres.map(g => g.id);
             results.type = 'Seeded by genres';
@@ -195,7 +199,9 @@ const seedArtistPlaylist = function (req, res) {
     generateSeedsPlaylist(options, (error, results) => {
         if (error) {
             winston.error(error.stack);
-            res.status(500).json(errors[500]);
+            const status = (error.status ? error.status : 500);
+            const message = (error.message ? error.message : errors[500])
+            res.status(status).json({error: message});
         } else {
             Artist.find({ _id: { $in: results.artists.map(a => a.id) } }, (error, artists) => {
                 if (error) {
@@ -241,7 +247,9 @@ const seedTracksPlaylist = function (req, res) {
     generateSeedsPlaylist(options, (error, results) => {
         if (error) {
             winston.error(error.stack);
-            res.status(500).json(errors[500]);
+            const status = (error.status ? error.status : 500);
+            const message = (error.message ? error.message : errors[500])
+            res.status(status).json({error: message});
         } else {
             Track.find({ _id: { $in: results.tracks.map(a => a.id) } }, (error, tracks) => {
                 if (error) {

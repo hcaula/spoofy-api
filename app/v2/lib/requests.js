@@ -24,7 +24,11 @@ exports.request = function() {
             try {
                 const response = JSON.parse(_chunk);
                 if(response.error) {
-                    if(response.error.message) next(new Error(response.error.message));
+                    if(response.error.message) {
+                        const error = new Error(response.error.message);
+                        error.status = response.error.status;
+                        next(error);
+                    }
                     else next(_chunk);
                 }
                 else next(null, response);
