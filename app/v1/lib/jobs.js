@@ -1,5 +1,4 @@
 const async = require('async');
-const config = require('../../config/config');
 const { encode } = require('base-64');
 const winston = require('winston');
 

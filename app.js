@@ -1,6 +1,5 @@
 const async = require('async');
 const winston = require('winston');
-const config = require('./config/config');
 
 const { initServer } = require('./config/server');
 const { initMongoose } = require('./config/database');
@@ -22,7 +21,6 @@ async.series([
     if (error) winston.error(error.stack);
     else {
         const port = process.env.PORT;
-        winston.info(`Server is ready to receive API calls on ` + 
-        `${config.protocol}://${config.hostname}${port ? `:${port}` : ''}`);
+        winston.info('Server is ready to receive API calls.');
     }
 });

@@ -6,15 +6,16 @@ process.env.NODE_ENV = 'development';
 const winston = require('winston');
 const async = require('async');
 
-require('../app/models/user')();
-require('../app/models/artist')();
-require('../app/models/track')();
+require('../app/v2/models/user')();
+// require('../app/models/artist')();
+// require('../app/models/track')();
 
 const { configWinston } = require('../config/winston');
 const { initMongoose } = require('../config/database');
-const top_tracks = require('../app/lib/top_tracks');
 
 const User = require('mongoose').model('User');
+
+const term = 'medium_term';
 
 configWinston(() => {
     winston.info("Starting updater job.");
@@ -24,14 +25,14 @@ configWinston(() => {
             winston.error(error.stack);
             process.exit(1);
         } else {
-            User.find({}, (error, user) => {
+            User.find({}, (error, users) => {
                 if (error) {
                     winston.error(error.stack);
                     process.exit(1);
                 } else {
                     let count = 0;
                     async.each(users, (user, next) => {
-                        top_tracks(user, error => {
+                        top_tracks(user, term, error => {
                             if (error) next(error);
                             else {
                                 count++;

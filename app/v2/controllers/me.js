@@ -78,7 +78,9 @@ const getGenres = function (req, res) {
 }
 
 const requestTop = function (req, res) {
-    top_tracks(req.user, error => {
+    let term = (req.body.term | req.query.term);
+    term = (term ? term : "medium_term");
+    top_tracks(req.user, term, error => {
         if (error) {
             winston.error(error.stack);
             res.status(500).json(errors[500]);

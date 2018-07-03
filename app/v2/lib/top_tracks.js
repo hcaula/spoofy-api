@@ -12,9 +12,9 @@ let results;
 
 const requestTop = function (next) {
     const token = results.user.token;
+    const term = results.term;
     const access_token = token.access_token;
     const limit = 25;
-    const term = "medium_term";
     const types = ["tracks", "artists"];
     let options = {
         host: 'api.spotify.com',
@@ -123,8 +123,8 @@ const updateUser = function (next) {
     });
 }
 
-module.exports = function (u, next) {
-    results = { user: u };
+module.exports = function (u, term, next) {
+    results = { user: u, term: term };
     async.series([
         requestTop,
         saveTop,
