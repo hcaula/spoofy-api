@@ -53,7 +53,7 @@ const saveTop = function (next) {
         const Model = models[count];
         count++;
         const objs = results[type];
-        async.each(objs, (obj, next) => {
+        async.eachSeries(objs, (obj, next) => {
             Model.findById(obj.id, (error, m) => {
                 if (error) next(error);
                 else if (m) next();
