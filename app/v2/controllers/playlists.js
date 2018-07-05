@@ -9,7 +9,7 @@ const Playlist = require('mongoose').model('Playlist');
 const errors = require('../lib/errors');
 const auth = require('../lib/auth');
 const { getShared } = require('../lib/shared');
-const { generateSeedsPlaylist, mediasPlaylists } = require('../lib/playlists');
+const { generateSeedsPlaylist, mediasPlaylists, savePlaylistOnSpotify } = require('../lib/playlists');
 const { searchByField } = require('../lib/util');
 
 module.exports = function (app) {
@@ -24,6 +24,8 @@ module.exports = function (app) {
     app.get('/api/v2/playlists/seeds/tracks', auth, getUsers, seedTracksPlaylist);
 
     app.post('/api/v2/playlists/vote', auth, registerVote);
+
+    app.post('/api/v2/playlists/export', auth, exportPlaylistToSpotify);
 }
 
 const getUsers = function (req, res, next) {
@@ -113,7 +115,7 @@ const artistsPlaylist = function (req, res) {
             winston.error(error.stack);
             const status = (error.status ? error.status : 500);
             const message = (error.message ? error.message : errors[500])
-            res.status(status).json({error: message});
+            res.status(status).json({ error: message });
         } else {
             let artists = [];
             tracks.forEach(t => {
@@ -160,7 +162,7 @@ const seedGenrePlaylist = function (req, res) {
             winston.error(error.stack);
             const status = (error.status ? error.status : 500);
             const message = (error.message ? error.message : errors[500])
-            res.status(status).json({error: message});
+            res.status(status).json({ error: message });
         } else {
             results.seeds = results.genres.map(g => g.id);
             results.type = 'Seeded by genres';
@@ -201,7 +203,7 @@ const seedArtistPlaylist = function (req, res) {
             winston.error(error.stack);
             const status = (error.status ? error.status : 500);
             const message = (error.message ? error.message : errors[500])
-            res.status(status).json({error: message});
+            res.status(status).json({ error: message });
         } else {
             Artist.find({ _id: { $in: results.artists.map(a => a.id) } }, (error, artists) => {
                 if (error) {
@@ -249,7 +251,7 @@ const seedTracksPlaylist = function (req, res) {
             winston.error(error.stack);
             const status = (error.status ? error.status : 500);
             const message = (error.message ? error.message : errors[500])
-            res.status(status).json({error: message});
+            res.status(status).json({ error: message });
         } else {
             Track.find({ _id: { $in: results.tracks.map(a => a.id) } }, (error, tracks) => {
                 if (error) {
@@ -313,6 +315,21 @@ const registerVote = function (req, res) {
                 });
             }
         }
+    });
+}
+
+const exportPlaylistToSpotify = function (req, res) {
+    const playlist_id = req.body.playlist_id;
+    const title = req.body.title;
+
+    savePlaylistOnSpotify(req.user, title, playlist_id, (error, spotify_playlist) => {
+        if (error) {
+            winston.error(error.stack);
+            res.status(500).json(errors[500]);
+        } else res.status(200).json({ 
+            message: "Playlist exported to Spotify successfully.",
+            spotify_playlist: spotify_playlist
+        });
     });
 }
 

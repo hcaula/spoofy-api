@@ -3,6 +3,11 @@ const async = require('async');
 const { getShared } = require('./shared');
 const { request } = require('./requests');
 
+const req = require('request');
+
+const Playlist = require('mongoose').model('Playlist');
+const User = require('mongoose').model('User');
+
 exports.generateSeedsPlaylist = function (options, next) {
     const access_token = options.access_token;
     const multipliers = options.multipliers;
@@ -27,10 +32,10 @@ exports.generateSeedsPlaylist = function (options, next) {
     let media_str = '';
     media.forEach(m => media_str += m.id + ',');
 
-    const path = `/v1/recommendations/?limit=${limit}&`+
-    `seed_${type}=${media_str}&`+
-    `min_popularity=${min_popularity}&`+
-    `max_popularity=${max_popularity}`;
+    const path = `/v1/recommendations/?limit=${limit}&` +
+        `seed_${type}=${media_str}&` +
+        `min_popularity=${min_popularity}&` +
+        `max_popularity=${max_popularity}`;
 
     options = {
         host: 'api.spotify.com',
@@ -108,4 +113,82 @@ exports.mediasPlaylists = function (options, next) {
             }
         });
     }, error => next(error, tracks));
+}
+
+const createPlaylist = function (user, users, title, next) {
+    const access_token = user.token.access_token;
+    const user_id = user._id;
+
+    let users_str = '';
+    users.forEach((u, i) => {
+        users_str += u;
+        if (i < users.lenght - 2) users_str += ", ";
+        else if (i < users.length - 1) users_str += " and ";
+    });
+
+    const description = `Have you ever wondered what ${users_str} would listen to if they were a single person?`;
+
+    const body = {
+        'name': title,
+        'description': description,
+        'public': true
+    }
+
+    const options = {
+        url: 'https://api.spotify.com/v1/users/' + user_id + '/playlists',
+        body: JSON.stringify(body),
+        dataType: 'json',
+        headers: {
+            'Authorization': 'Bearer ' + access_token,
+            'Content-Type': 'application/json',
+        }
+    };
+
+    req.post(options, (error, res, body) => next(error, JSON.parse(body)));
+
+}
+
+const addTracks = function (user, play_id, playlist, next) {
+    const access_token = user.token.access_token;
+    const user_id = user._id;
+    const uris = playlist.tracks.map(t => t.uri).join(',');
+
+    const path = `/v1/users/${user_id}/playlists/${play_id}/tracks?` +
+        `position=0&` +
+        `uris=${uris}`
+
+    const options = {
+        url: `https://api.spotify.com${path}`,
+        headers: {
+            'Authorization': 'Bearer ' + access_token,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+    };
+    req.post(options, (error, res, body) => next(error));
+}
+
+exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
+    Playlist.findById(playlist_id, (error, playlist) => {
+        if (error) next(error);
+        else {
+            User.find({ _id: { $in: playlist.users } }, (error, users) => {
+                if (error) next(error);
+                else {
+                    if (!title) {
+                        title = '';
+                        users.forEach((u, i) => {
+                            title += u.display_name;
+                            if (i < users.length - 1) title += " + ";
+                        });
+                    }
+                    const user_names = users.map(u => u.display_name);
+                    createPlaylist(user, user_names, title, (error, sptfy_playlist) => {
+                        if (error) next(error);
+                        else addTracks(user, sptfy_playlist.id, playlist, error => next(error, sptfy_playlist));
+                    });
+                }
+            });
+        }
+    });
 }

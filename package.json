@@ -25,6 +25,7 @@
     "express-load": "^1.1.16",
     "mongoose": "^5.0.9",
     "querystring": "^0.2.0",
+    "request": "^2.87.0",
     "simple-statistics": "^5.2.1",
     "urlencode": "^1.1.0",
     "winston": "^2.4.0"
