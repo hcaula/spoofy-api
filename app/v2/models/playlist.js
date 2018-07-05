@@ -20,7 +20,8 @@ module.exports = function () {
         min_popularity: Number,
         max_populairty: Number,
         multipliers: [],
-        voted: { type: Boolean, default: false }
+        voted: { type: Boolean, default: false },
+        exported: { type: Boolean, default: false },
     }, { strict: false });
 
     mongoose.model('Playlist', PlaylistSchema);

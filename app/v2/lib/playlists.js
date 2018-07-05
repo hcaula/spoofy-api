@@ -172,23 +172,29 @@ exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
     Playlist.findById(playlist_id, (error, playlist) => {
         if (error) next(error);
         else {
-            User.find({ _id: { $in: playlist.users } }, (error, users) => {
+            playlist.exported = true;
+            playlist.save(error => {
                 if (error) next(error);
                 else {
-                    if (!title) {
-                        title = '';
-                        users.forEach((u, i) => {
-                            title += u.display_name;
-                            if (i < users.length - 1) title += " + ";
-                        });
-                    }
-                    const user_names = users.map(u => u.display_name);
-                    createPlaylist(user, user_names, title, (error, sptfy_playlist) => {
+                    User.find({ _id: { $in: playlist.users } }, (error, users) => {
                         if (error) next(error);
-                        else addTracks(user, sptfy_playlist.id, playlist, error => next(error, sptfy_playlist));
+                        else {
+                            if (!title) {
+                                title = '';
+                                users.forEach((u, i) => {
+                                    title += u.display_name;
+                                    if (i < users.length - 1) title += " + ";
+                                });
+                            }
+                            const user_names = users.map(u => u.display_name);
+                            createPlaylist(user, user_names, title, (error, sptfy_playlist) => {
+                                if (error) next(error);
+                                else addTracks(user, sptfy_playlist.id, playlist, error => next(error, sptfy_playlist));
+                            });
+                        }
                     });
                 }
-            });
+            })
         }
     });
 }
