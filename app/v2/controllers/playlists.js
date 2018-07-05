@@ -325,7 +325,9 @@ const exportPlaylistToSpotify = function (req, res) {
     savePlaylistOnSpotify(req.user, title, playlist_id, (error, spotify_playlist) => {
         if (error) {
             winston.error(error.stack);
-            res.status(500).json(errors[500]);
+            const status = (error.status ? error.status : 500);
+            const message = (error.message ? error.message : errors[500])
+            res.status(status).json({ error: message });
         } else res.status(200).json({ 
             message: "Playlist exported to Spotify successfully.",
             spotify_playlist: spotify_playlist

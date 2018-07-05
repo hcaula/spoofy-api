@@ -144,7 +144,11 @@ const createPlaylist = function (user, users, title, next) {
         }
     };
 
-    req.post(options, (error, res, body) => next(error, JSON.parse(body)));
+    req.post(options, (error, res, body) => {
+        if (error) next(error);
+        else if (res.statusCode != 201) next(JSON.parse(body).error);
+        else next(null, JSON.parse(body));
+    });
 
 }
 
@@ -165,7 +169,11 @@ const addTracks = function (user, play_id, playlist, next) {
             'Content-Type': 'application/json',
         }
     };
-    req.post(options, (error, res, body) => next(error));
+    req.post(options, (error, res, body) => {
+        if (error) next(error);
+        else if (res.statusCode != 201) next(JSON.parse(body).error);
+        else next();
+    });
 }
 
 exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
@@ -182,7 +190,11 @@ exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
                             if (!title) {
                                 title = '';
                                 users.forEach((u, i) => {
-                                    title += u.display_name;
+                                    let index = (u.display_name.indexOf(' '));
+                                    if (index < 0) index = u.display_name.lenght;
+                                    const name = u.display_name.substring(0, index);
+
+                                    title += name;
                                     if (i < users.length - 1) title += " + ";
                                 });
                             }
