@@ -6,16 +6,16 @@ exports.takePairs = function (array) {
     let pairs = [];
     array.forEach(i => {
         array.forEach(j => {
-            if(i != j) {
+            if (i != j) {
                 let found = false;
                 pairs.forEach(p => {
-                    if((p[0] == i && p[1] == j) || (p[1] == i && p[0] == j)) {
+                    if ((p[0] == i && p[1] == j) || (p[1] == i && p[0] == j)) {
                         found = true;
                         return;
                     }
                 });
 
-                if(!found) pairs.push([i, j]);
+                if (!found) pairs.push([i, j]);
             } else return;
         });
     });
@@ -67,7 +67,7 @@ exports.normalize = function (array) {
     return normalized;
 }
 
-exports.lookAsideConversion = function(look_aside_url) {
+exports.lookAsideConversion = function (look_aside_url) {
     let id = '';
     let index = look_aside_url.indexOf('asid=') + 5;
     while (look_aside_url[index] != '&' || index > look_aside_url.length) {
@@ -77,6 +77,12 @@ exports.lookAsideConversion = function(look_aside_url) {
 
     const new_url = `https://graph.facebook.com/${id}/picture?height=200&width=200`;
     return new_url;
+}
+
+exports.encodeJPG = function (file) {
+    const fs = require('fs');
+    const bitmap = fs.readFileSync(file);
+    return new Buffer(bitmap).toString('base64');
 }
 
 /*

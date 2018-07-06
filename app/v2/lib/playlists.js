@@ -2,11 +2,13 @@ const async = require('async');
 
 const { getShared } = require('./shared');
 const { request } = require('./requests');
+const { encodeJPG } = require('./util');
 
 const req = require('request');
 
 const Playlist = require('mongoose').model('Playlist');
 const User = require('mongoose').model('User');
+
 
 exports.generateSeedsPlaylist = function (options, next) {
     const access_token = options.access_token;
@@ -176,6 +178,29 @@ const addTracks = function (user, play_id, playlist, next) {
     });
 }
 
+const changeImage = function (user, play_id, next) {
+    const access_token = user.token.access_token;
+    const user_id = user._id;
+    const image64 = encodeJPG('assets/imgs/spoofy_playlist.jpg');
+
+    const path = `/v1/users/${user_id}/playlists/${play_id}/images`;
+
+    const options = {
+        url: `https://api.spotify.com${path}`,
+        body: image64,
+        headers: {
+            'Authorization': 'Bearer ' + access_token,
+            'Content-Type': 'image/jpeg',
+        }
+    };
+
+    req.put(options, (error, res, body) => {
+        if (error) next(error);
+        else if (res.statusCode != 202) next(JSON.parse(body).error);
+        else next();
+    });
+}
+
 exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
     Playlist.findById(playlist_id, (error, playlist) => {
         if (error) next(error);
@@ -201,7 +226,10 @@ exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
                             const user_names = users.map(u => u.display_name);
                             createPlaylist(user, user_names, title, (error, sptfy_playlist) => {
                                 if (error) next(error);
-                                else addTracks(user, sptfy_playlist.id, playlist, error => next(error, sptfy_playlist));
+                                else addTracks(user, sptfy_playlist.id, playlist, error => {
+                                    if (error) next(error);
+                                    else changeImage(user, sptfy_playlist.id, error => next(error, sptfy_playlist));
+                                });
                             });
                         }
                     });
