@@ -18,7 +18,7 @@ exports.generateSeedsPlaylist = function (options, next) {
     const type = options.type;
     const min_popularity = options.min_popularity;
     const max_popularity = options.max_popularity;
-    const limit = 25;
+    const limit = 50;
 
     let media = getShared({
         users: users,
@@ -138,7 +138,8 @@ const createPlaylist = function (user, users, title, next) {
     else if (users.length == 2) sentences = descriptions.couple;
     else sentences = descriptions.group;
     const rand = Math.round((Math.random() * (sentences.length - 1)));
-    const description = sentences[rand].replace("${users}", users_str)
+
+    const description = sentences[rand].replace("${users}", users_str);
 
     const body = {
         'name': title,
@@ -223,14 +224,15 @@ exports.savePlaylistOnSpotify = function (user, title, playlist_id, next) {
                         if (error) next(error);
                         else {
                             if (!title) {
-                                title = '';
+                                title = 'spoofy: ';
                                 users.forEach((u, i) => {
                                     let index = (u.display_name.indexOf(' '));
                                     if (index < 0) index = u.display_name.lenght;
                                     const name = u.display_name.substring(0, index);
 
                                     title += name;
-                                    if (i < users.length - 1) title += " + ";
+                                    if (i < users.length - 2) title += ", ";
+                                    else if (i < users.length - 1) title += " and ";
                                 });
                             }
                             const user_names = users.map(u => u.display_name);

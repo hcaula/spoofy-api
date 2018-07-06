@@ -12,7 +12,7 @@ exports.getShared = function (options) {
     users.forEach((user, i) => {
         const u_multiplier = multipliers[i];
         user[type].forEach((m, j) => {
-            const m_multiplier = (type == 'genres' ? m.weight : user[type].length - j);
+            const m_multiplier = (type == 'genres' ? m.weight : 1);
             const id = (type == 'genres' ? m.name : m);
 
             const index = searchByField(id, "id", medias);
