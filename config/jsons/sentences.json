@@ -1,0 +1,18 @@
+{
+    "lonely": [
+        "Only one person selected? Okay then! Here's what ${users} might like."
+    ],
+    "couple": [
+        "${users} should just kiss listening to this playlist. Just sayin'.",
+        "${users} sitting on a tree! K-I-S-S-I-N-G and listening to this playlist.",
+        "Power pair! Here's what ${users} might like.",
+        "Prepare for trouble - and make it double. Let ${users} try to catch Pikachu listening to this playlist."
+    ],
+    "group": [
+        "Have you ever wondered what ${users} would listen to if they were a single person?",
+        "If ${users} all ran into each other really hard, here's what the explosion would sound like.",
+        "F-U-S-I-O-N! ${users} powers are over 9000!",
+        "No need to fight, all of you'll like this playlist. Here's to ${users}.",
+        "Hey! Tell ${users} to start this party already!"
+    ]
+}

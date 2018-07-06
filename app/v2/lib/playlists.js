@@ -3,6 +3,7 @@ const async = require('async');
 const { getShared } = require('./shared');
 const { request } = require('./requests');
 const { encodeJPG } = require('./util');
+const descriptions = require('../../../config/jsons/sentences');
 
 const req = require('request');
 
@@ -123,12 +124,21 @@ const createPlaylist = function (user, users, title, next) {
 
     let users_str = '';
     users.forEach((u, i) => {
-        users_str += u;
-        if (i < users.lenght - 2) users_str += ", ";
+        let index = (u.indexOf(' '));
+        if (index < 0) index = u.lenght;
+        const name = u.substring(0, index);
+
+        users_str += name;
+        if (i < users.length - 2) users_str += ", ";
         else if (i < users.length - 1) users_str += " and ";
     });
 
-    const description = `Have you ever wondered what ${users_str} would listen to if they were a single person?`;
+    let sentences;
+    if (users.length == 1) sentences = descriptions.lonely;
+    else if (users.length == 2) sentences = descriptions.couple;
+    else sentences = descriptions.group;
+    const rand = Math.round((Math.random() * (sentences.length - 1)));
+    const description = sentences[rand].replace("${users}", users_str)
 
     const body = {
         'name': title,
