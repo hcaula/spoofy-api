@@ -4,6 +4,9 @@ exports.getShared = function (options) {
     const type = options.type;
     const users = options.users;
     const seeded = options.seeded;
+    
+    /* Focus more on shared media */
+    const shared_multiplier = 2;
 
     let multipliers = [].fill.call({ length: users.length }, 1);
     if (options.multipliers.length == users.length) multipliers = options.multipliers;
@@ -17,7 +20,7 @@ exports.getShared = function (options) {
 
             const index = searchByField(id, "id", medias);
 
-            if (index > -1) medias[index].weight += u_multiplier * m_multiplier;
+            if (index > -1) medias[index].weight += u_multiplier * m_multiplier * shared_multiplier;
             else {
                 medias.push({
                     id: id,
